@@ -57,19 +57,26 @@
         .dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
         /* 編輯器核心設定 */
-        textarea { white-space: pre !important; overflow-wrap: normal !important; overflow-x: auto; tab-size: 4; }
+        textarea { white-space: pre !important; overflow-wrap: normal !important; tab-size: 4; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
         .editor-container { position: relative; display: flex; flex: 1 1 0%; min-width: 0; min-height: 0; overflow: hidden; height: 0; }
-        .gutter { flex: 0 0 48px; width: 48px; min-height: 0; box-sizing: border-box; text-align: right; padding: 12px 8px 12px 0; border-right: 1px solid; user-select: none; z-index: 10; height: 100%; overflow: hidden; white-space: pre; }
-        .code-layer { flex: 1 1 0%; min-width: 0; min-height: 0; position: relative; overflow: auto; height: 100%; }
         
+        /* Gutter (行號) 需要隱藏捲動條但內容可以捲動 (被 JS 同步) */
+        .gutter { flex: 0 0 48px; width: 48px; min-height: 0; box-sizing: border-box; text-align: right; padding: 12px 8px 12px 0; border-right: 1px solid; user-select: none; z-index: 10; height: 100%; overflow: hidden; white-space: pre; }
+        
+        /* Code Layer 不再自己捲動，改為 relative 容器 */
+        .code-layer { flex: 1 1 0%; min-width: 0; min-height: 0; position: relative; height: 100%; }
+        
+        /* 高亮層需要與 Textarea 尺寸完全一致，並強制隱藏捲動條 (由 JS 同步捲動) */
         .highlight-backdrop {
-            position: absolute; top: 0; left: 0; right: 0; min-height: 100%;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             padding: 12px; pointer-events: none; color: transparent; z-index: 1;
             white-space: pre; font-size: 14px; line-height: 1.5; box-sizing: border-box;
+            overflow: hidden; tab-size: 4;
         }
+        
         /* 黃色螢光筆高亮 */
         .highlight-backdrop mark { background-color: rgba(253, 224, 71, 0.7); color: transparent; border-radius: 2px; box-shadow: 0 0 0 1px rgba(234, 179, 8, 0.5); }
         .dark .highlight-backdrop mark { background-color: rgba(234, 179, 8, 0.5); box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.6); }
@@ -77,9 +84,11 @@
         /* 搜尋匹配高亮 */
         .highlight-backdrop .search-match { background-color: rgba(59, 130, 246, 0.5); border-radius: 2px; }
 
+        /* Textarea 為真正的捲動主體 */
         .code-input {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; min-height: 0; box-sizing: border-box;
             padding: 12px; margin: 0; border: 0; background: transparent; z-index: 2; resize: none; outline: none; font-size: 14px; line-height: 1.5; color: inherit; -webkit-text-fill-color: currentColor;
+            overflow: auto; /* 允許 Textarea 自己捲動 */
         }
 
         @media (min-width: 1024px) {
@@ -123,7 +132,7 @@
     <!-- 彈出通知容器 -->
     <div id="toastContainer" class="fixed top-4 right-1/2 translate-x-1/2 z-[150] flex flex-col gap-2 pointer-events-none"></div>
 
-    <!-- 手機端分頁導航 (只有 lg 螢幕以下顯示) -->
+    <!-- 手機端分頁導航 -->
     <div class="flex lg:hidden bg-white dark:bg-slate-900 border-b border-slate-300 dark:border-slate-700 p-2 gap-2 overflow-x-auto shrink-0 shadow-sm z-10 pb-[calc(0.5rem+var(--safe-area-inset-bottom))]">
         <button onclick="switchTab(1)" id="tabBtn1" class="flex-1 min-w-[80px] py-2 px-2 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-bold border border-blue-300 dark:border-blue-700 text-sm flex items-center justify-center gap-1.5 transition-colors shadow-sm">
             <span id="tabBadge1" class="bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]">1</span> <span data-i18n="tab1">原始</span>
@@ -142,7 +151,6 @@
             <div class="p-2 sm:p-3 border-b border-slate-300 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800 shrink-0 gap-2">
                 <h3 class="font-bold flex items-center gap-2"><i class="fa-solid fa-eye text-blue-600"></i> <span data-i18n="previewModalTitle" class="hidden sm:inline">網頁即時預覽</span></h3>
                 <div class="flex items-center gap-2">
-                    <!-- 設備切換掣 -->
                     <div class="flex bg-slate-200 dark:bg-slate-700 p-1 rounded-lg gap-1 border border-slate-300 dark:border-slate-600 shadow-inner">
                         <button id="btnMobilePreview" onclick="setPreviewMode('mobile')" class="px-2 sm:px-3 py-1 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:bg-white dark:hover:bg-slate-800 transition flex items-center gap-1"><i class="fa-solid fa-mobile-screen"></i> <span data-i18n="btnMobile" class="hidden sm:inline">手機</span></button>
                         <button id="btnDesktopPreview" onclick="setPreviewMode('desktop')" class="px-2 sm:px-3 py-1 rounded-md text-sm font-medium text-blue-600 bg-white dark:text-blue-400 dark:bg-slate-800 shadow-sm transition flex items-center gap-1"><i class="fa-solid fa-desktop"></i> <span data-i18n="btnDesktop" class="hidden sm:inline">電腦</span></button>
@@ -151,7 +159,6 @@
                     <button onclick="closePreview()" class="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 font-bold px-2 sm:px-3 py-1 border border-red-300 dark:border-red-800 rounded transition shadow-sm flex items-center gap-1"><i class="fa-solid fa-xmark"></i> <span data-i18n="btnClose" class="hidden sm:inline">關閉</span></button>
                 </div>
             </div>
-            <!-- 預覽容器 -->
             <div class="flex-1 bg-slate-300/30 dark:bg-black/40 overflow-y-auto flex flex-col items-center">
                 <iframe id="previewFrame" class="w-full h-full bg-white transition-all duration-300 border-none shrink-0 shadow-lg"></iframe>
             </div>
@@ -166,7 +173,6 @@
                 <button onclick="closeSyntaxModal()" class="text-slate-500 hover:text-red-600 transition"><i class="fa-solid fa-xmark fa-lg"></i></button>
             </div>
             <div id="syntaxReportContent" class="p-4 flex-1 min-h-0 overflow-y-auto text-sm space-y-3">
-                <!-- 報告內容會喺度生成 -->
             </div>
             <div class="p-3 bg-slate-50 dark:bg-slate-800 border-t border-slate-300 dark:border-slate-700 text-right">
                 <button onclick="closeSyntaxModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition shadow-sm border border-blue-800"><span data-i18n="btnGotIt">我知道了</span></button>
@@ -174,11 +180,10 @@
         </div>
     </div>
 
-    <!-- 主要工作區 (強制 overflow-hidden，讓內部編輯器自己捲動) -->
+    <!-- 主要工作區 -->
     <main class="flex-1 flex flex-col lg:flex-row p-3 sm:p-4 gap-4 overflow-hidden relative">
         
         <!-- ================= 第 1 欄：原始 HTML ================= -->
-        <!-- 預設在手機端顯示 (flex)，桌面端一定顯示 (lg:flex) -->
         <div id="col1" class="flex lg:flex flex-col flex-1 h-full bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-400 dark:border-slate-600 overflow-hidden transition-colors duration-300">
             <div class="bg-slate-50 dark:bg-slate-800 px-3 py-2 border-b border-slate-400 dark:border-slate-600 flex justify-between items-center shrink-0 flex-wrap gap-2">
                 <h2 class="text-sm font-bold flex items-center gap-2">
@@ -186,20 +191,16 @@
                     <span data-i18n="col1Title">你的原始檔案</span>
                 </h2>
                 <div class="flex items-center flex-wrap gap-1 sm:gap-2">
-                    <!-- 復原按鈕 -->
                     <button id="undoBtn" onclick="undoLast()" data-i18n-title="titleUndo" class="text-xs bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-500 px-2 py-1.5 sm:py-1 rounded shadow-sm opacity-50 cursor-not-allowed transition hover:bg-slate-100 dark:hover:bg-slate-600" title="復原上一次替換 (Ctrl+Z)">
                         <i class="fa-solid fa-rotate-left"></i> <span data-i18n="btnUndo" class="hidden sm:inline">復原</span>
                     </button>
-                    <!-- 自動排版按鈕 -->
                     <button onclick="formatHTML('1')" data-i18n-title="titleFormat" class="text-xs bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-400 border border-slate-400 dark:border-slate-500 px-2 py-1.5 sm:py-1 rounded shadow-sm transition" title="整理代碼縮排">
                         <i class="fa-solid fa-broom"></i> <span data-i18n="btnFormat" class="hidden sm:inline">排版</span>
                     </button>
-                    <!-- 載入檔案按鈕 -->
                     <button onclick="document.getElementById('fileUpload').click()" class="text-xs bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-400 dark:border-slate-500 px-2 py-1.5 sm:py-1 rounded shadow-sm transition">
                         <i class="fa-solid fa-folder-open"></i> <span data-i18n="btnLoad" class="hidden sm:inline">載入</span>
                     </button>
                     <input type="file" id="fileUpload" class="hidden" accept=".html,.htm,.txt" onchange="handleFileUpload(event)">
-                    <!-- 搜尋按鈕 -->
                     <button onclick="openSearch()" data-i18n-title="titleSearch" class="text-xs bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-400 dark:border-slate-500 px-2 py-1.5 sm:py-1 rounded shadow-sm transition" title="搜尋 (Ctrl+F)">
                         <i class="fa-solid fa-magnifying-glass"></i> <span data-i18n="btnSearch" class="hidden lg:inline">搜尋</span>
                     </button>
@@ -207,7 +208,6 @@
                 </div>
             </div>
             
-            <!-- 搜尋浮動視窗 -->
             <div id="searchOverlay" class="hidden absolute top-14 left-1/2 -translate-x-1/2 lg:left-auto lg:right-4 lg:translate-x-0 bg-white dark:bg-slate-800 shadow-xl border border-slate-500 dark:border-slate-400 rounded-lg p-2 items-center gap-2 z-20">
                 <i class="fa-solid fa-magnifying-glass text-slate-500 dark:text-slate-400"></i>
                 <input type="text" id="searchInput" data-i18n-placeholder="searchPlaceholder" placeholder="尋找代碼 (Ctrl+F)..." class="px-2 py-1 text-sm outline-none w-40 sm:w-48 bg-slate-50 dark:bg-slate-900 rounded border border-slate-400 dark:border-slate-600 focus:border-blue-500 dark:text-white">
@@ -219,18 +219,17 @@
                 </div>
             </div>
 
-            <!-- 編輯器 1 核心 -->
+            <!-- 編輯器 1 核心：將 onscroll 綁定在 textarea 上 -->
             <div class="editor-container bg-white dark:bg-slate-950 flex-1">
                 <div id="gutter1" class="gutter code-font text-xs bg-slate-50 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500">1</div>
-                <div class="code-layer" onscroll="syncScroll(this, 'gutter1', 'backdrop1')">
+                <div class="code-layer">
                     <div id="backdrop1" class="highlight-backdrop code-font"></div>
-                    <textarea id="code1" class="code-input code-font no-scrollbar text-slate-800 dark:text-slate-300 h-full w-full" data-i18n-placeholder="placeholder1" placeholder="按右上角載入檔案，或貼上原本的 HTML 檔案代碼..." oninput="updateEditor('1')" spellcheck="false"></textarea>
+                    <textarea id="code1" wrap="off" class="code-input code-font text-slate-800 dark:text-slate-300 h-full w-full" data-i18n-placeholder="placeholder1" placeholder="按右上角載入檔案，或貼上原本的 HTML 檔案代碼..." oninput="updateEditor('1')" onscroll="syncScroll(this, 'gutter1', 'backdrop1')" spellcheck="false"></textarea>
                 </div>
             </div>
         </div>
 
         <!-- ================= 第 2 欄：AI 提供的代碼 ================= -->
-        <!-- 預設在手機端隱藏 (hidden)，桌面端一定顯示 (lg:flex) -->
         <div id="col2" class="hidden lg:flex flex-col flex-1 h-full bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-400 dark:border-slate-600 overflow-hidden border-t-2 border-t-indigo-600 transition-colors duration-300">
             <div class="bg-indigo-50 dark:bg-indigo-950 px-3 py-2 border-b border-slate-400 dark:border-slate-600 flex justify-between items-center shrink-0">
                 <h2 class="text-sm font-bold flex items-center gap-2 text-indigo-800 dark:text-indigo-300">
@@ -242,13 +241,12 @@
             
             <div class="editor-container bg-indigo-50/30 dark:bg-indigo-950/20 flex-1">
                 <div id="gutter2" class="gutter code-font text-xs bg-indigo-50/50 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500">1</div>
-                <div class="code-layer" onscroll="syncScroll(this, 'gutter2', 'backdrop2')">
+                <div class="code-layer">
                     <div id="backdrop2" class="highlight-backdrop code-font"></div>
-                    <textarea id="code2" class="code-input code-font no-scrollbar text-slate-800 dark:text-slate-300 h-full w-full" data-i18n-placeholder="placeholder2" placeholder="直接將 ChatGPT/Claude 的整段回答(包含解釋)貼喺度！&#10;系統識得自動過濾中文，抽出純代碼。" oninput="updateEditor('2')" spellcheck="false"></textarea>
+                    <textarea id="code2" wrap="off" class="code-input code-font text-slate-800 dark:text-slate-300 h-full w-full" data-i18n-placeholder="placeholder2" placeholder="直接將 ChatGPT/Claude 的整段回答(包含解釋)貼喺度！&#10;系統識得自動過濾中文，抽出純代碼。" oninput="updateEditor('2')" onscroll="syncScroll(this, 'gutter2', 'backdrop2')" spellcheck="false"></textarea>
                 </div>
             </div>
 
-            <!-- 替換操作按鈕 -->
             <div class="bg-white dark:bg-slate-800 p-3 sm:p-4 pb-[calc(1rem+var(--safe-area-inset-bottom))] sm:pb-4 border-t border-slate-400 dark:border-slate-600 grid grid-cols-1 sm:grid-cols-2 gap-3 shrink-0">
                 <button onclick="copyAIPrompt()" data-i18n-title="titlePrompt" class="w-full bg-slate-100 dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-600 py-3 sm:py-2 px-3 rounded-lg text-sm sm:text-base font-bold transition shadow-sm flex justify-center items-center gap-2 col-span-1 sm:col-span-2 mb-1">
                     <i class="fa-solid fa-comment-dots"></i> <span data-i18n="btnPrompt">指令</span>
@@ -263,7 +261,6 @@
         </div>
 
         <!-- ================= 第 3 欄：融合結果 ================= -->
-        <!-- 預設在手機端隱藏 (hidden)，桌面端一定顯示 (lg:flex) -->
         <div id="col3" class="hidden lg:flex flex-col flex-1 h-full bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-400 dark:border-slate-600 overflow-hidden border-t-2 border-t-green-600 transition-colors duration-300">
             <div class="bg-green-50 dark:bg-green-950 px-3 py-2 border-b border-slate-400 dark:border-slate-600 flex justify-between items-center shrink-0 flex-wrap gap-2">
                 <button onclick="switchTab(2)" data-i18n-title="titleBack" class="lg:hidden text-xs bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 border border-slate-400 dark:border-slate-500 px-2 py-1.5 rounded shadow-sm transition flex items-center gap-1" title="返回 AI 回覆">
@@ -289,13 +286,12 @@
             
             <div class="editor-container bg-green-50/10 dark:bg-green-950/10 flex-1">
                 <div id="gutter3" class="gutter code-font text-xs bg-green-50/50 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500">1</div>
-                <div class="code-layer" onscroll="syncScroll(this, 'gutter3', 'backdrop3')">
+                <div class="code-layer">
                     <div id="backdrop3" class="highlight-backdrop code-font"></div>
-                    <textarea id="code3" class="code-input code-font no-scrollbar text-slate-800 dark:text-slate-300 h-full w-full" data-i18n-placeholder="placeholder3" placeholder="替換後的結果會顯示喺度。新增嘅部分會有黃色螢光筆標示。" oninput="updateEditor('3')" spellcheck="false" readonly></textarea>
+                    <textarea id="code3" wrap="off" class="code-input code-font text-slate-800 dark:text-slate-300 h-full w-full" data-i18n-placeholder="placeholder3" placeholder="替換後的結果會顯示喺度。新增嘅部分會有黃色螢光筆標示。" oninput="updateEditor('3')" onscroll="syncScroll(this, 'gutter3', 'backdrop3')" spellcheck="false" readonly></textarea>
                 </div>
             </div>
 
-            <!-- 結果匯出按鈕 -->
             <div class="bg-slate-100 dark:bg-slate-800 p-3 sm:p-4 pb-[calc(1rem+var(--safe-area-inset-bottom))] sm:pb-4 border-t border-slate-400 dark:border-slate-600 grid grid-cols-3 lg:flex gap-2 shrink-0">
                 <button onclick="copyResult()" class="w-full lg:flex-1 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-500 dark:border-slate-400 py-2 sm:py-2 px-1 sm:px-2 rounded-lg text-xs sm:text-sm font-medium transition shadow-sm">
                     <i class="fa-regular fa-copy"></i> <span data-i18n="btnCopy">複製</span>
@@ -322,11 +318,9 @@
                 langTitle: "Switch to English",
                 langLabel: "EN",
                 themeTitle: "切換日夜模式",
-                // 新增 Tab 翻譯
                 tab1: "原始",
                 tab2: "AI回覆",
                 tab3: "結果",
-                
                 col1Title: "你的原始檔案",
                 col2Title: "AI 回覆 (連中文字貼上)",
                 col3Title: "最終代碼結果",
@@ -368,7 +362,6 @@
                 btnClose: "關閉",
                 syntaxModalTitle: "代碼健康檢查報告",
                 btnGotIt: "我知道了",
-                // JS 動態通知
                 msgUndo: "↩️ 已復原至上一個狀態",
                 msgFormatSuccess: "✨ 代碼已自動排版整齊！",
                 msgFormatFail: "排版失敗，請檢查代碼結構。",
@@ -394,7 +387,6 @@
                 btnPrompt: "指令",
                 titlePrompt: "複製 AI 輸出指引 (讓 AI 產出更準確的代碼)",
                 msgPromptCopy: "📋 AI 指引已複製！請貼給 ChatGPT/Claude。",
-                // 語法檢查器用
                 synPerfectTitle: "完美！代碼非常健康",
                 synPerfectDesc: "冇發現任何漏寫括號或未閂埋嘅標籤。",
                 synErrorTitle: "發現 {n} 個潛在語法錯誤",
@@ -413,11 +405,9 @@
                 langTitle: "切換至中文",
                 langLabel: "中",
                 themeTitle: "Toggle Dark Mode",
-                
                 tab1: "Original",
                 tab2: "AI Reply",
                 tab3: "Result",
-                
                 col1Title: "Your Original File",
                 col2Title: "AI Response (Paste All)",
                 col3Title: "Final Code Result",
@@ -459,7 +449,6 @@
                 btnClose: "Close",
                 syntaxModalTitle: "Code Health Report",
                 btnGotIt: "Got it",
-                // JS Dynamic messages
                 msgUndo: "↩️ Undone to previous state",
                 msgFormatSuccess: "✨ Code formatted successfully!",
                 msgFormatFail: "Format failed, check code structure.",
@@ -485,7 +474,6 @@
                 btnPrompt: "Prompt",
                 titlePrompt: "Copy AI Output Guidelines (make AI generate more accurate code)",
                 msgPromptCopy: "📋 AI guidelines copied! Paste them to ChatGPT/Claude.",
-                // Syntax checker
                 synPerfectTitle: "Perfect! Code is healthy",
                 synPerfectDesc: "No unclosed tags or missing brackets found.",
                 synErrorTitle: "Found {n} potential syntax errors",
@@ -552,7 +540,6 @@
         function switchTab(tabId) {
             currentTab = tabId;
             
-            // 處理欄位顯示/隱藏 (針對手機端)
             const cols = ['col1', 'col2', 'col3'];
             cols.forEach((colId, index) => {
                 const i = index + 1;
@@ -566,7 +553,6 @@
                 }
             });
 
-            // 更新按鈕外觀設計
             const themes = {
                 1: { activeBg: 'bg-blue-100 dark:bg-blue-900/50', activeText: 'text-blue-700 dark:text-blue-300', activeBorder: 'border-blue-300 dark:border-blue-700', badgeBg: 'bg-blue-600' },
                 2: { activeBg: 'bg-indigo-100 dark:bg-indigo-900/50', activeText: 'text-indigo-700 dark:text-indigo-300', activeBorder: 'border-indigo-300 dark:border-indigo-700', badgeBg: 'bg-indigo-600' },
@@ -577,11 +563,9 @@
                 const btn = document.getElementById(`tabBtn${i}`);
                 const badge = document.getElementById(`tabBadge${i}`);
                 
-                // 重設為非選中狀態
                 btn.className = `flex-1 min-w-[80px] py-2 px-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium border border-slate-300 dark:border-slate-600 text-sm flex items-center justify-center gap-1.5 transition-colors shadow-sm`;
                 badge.className = `bg-slate-400 dark:bg-slate-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]`;
                 
-                // 套用選中狀態
                 if (i === tabId) {
                     const t = themes[i];
                     btn.className = `flex-1 min-w-[80px] py-2 px-2 rounded-lg ${t.activeBg} ${t.activeText} font-bold border ${t.activeBorder} text-sm flex items-center justify-center gap-1.5 transition-colors shadow-sm`;
@@ -601,6 +585,14 @@
             
             gutter.innerHTML = Array.from({length: count}, (_, i) => i + 1).join('\n');
             lineCountLabel.innerHTML = `📄 ${count} <span class="lineLabel">${t('lineUnit')}</span>`;
+        }
+
+        // 同步 textarea 捲動到 gutter 與 backdrop (已修復：直接讀取 textarea 本身的 scrollTop / scrollLeft)
+        function syncScroll(textarea, gutterId, backdropId) {
+            document.getElementById(gutterId).scrollTop = textarea.scrollTop;
+            const backdrop = document.getElementById(backdropId);
+            backdrop.scrollTop = textarea.scrollTop;
+            backdrop.scrollLeft = textarea.scrollLeft;
         }
 
         function copyAIPrompt() {
@@ -623,13 +615,6 @@
             }).catch(err => {
                 console.error('Failed to copy: ', err);
             });
-        }
-
-        function syncScroll(scrollableLayer, gutterId, backdropId) {
-            document.getElementById(gutterId).scrollTop = scrollableLayer.scrollTop;
-            const backdrop = document.getElementById(backdropId);
-            backdrop.scrollTop = scrollableLayer.scrollTop;
-            backdrop.scrollLeft = scrollableLayer.scrollLeft;
         }
 
         // ================= 排版與復原 (Undo) =================
@@ -707,7 +692,6 @@
                 backdrop3.innerHTML = escapeHTML(origHTML);
                 showToast(t('msgDirectCopy'));
                 
-                // [智能體驗] 如果在手機上，自動跳轉到結果頁籤
                 if (window.innerWidth < 1024) switchTab(3);
                 return; 
             }
@@ -776,16 +760,16 @@
             
             backdrop3.innerHTML = escapeHTML(part1) + '<mark id="scrollTarget">' + escapeHTML(part2) + '</mark>' + escapeHTML(part3);
 
-            // [智能體驗] 如果在手機上，替換成功後自動切換到結果頁籤！
             if (window.innerWidth < 1024) switchTab(3);
 
             setTimeout(() => {
                 const target = document.getElementById('scrollTarget');
                 if (target) {
-                    const container = document.getElementById('code3').parentElement;
+                    // 已修復：讓 textarea 自身捲動，對準高亮元素
+                    const container = document.getElementById('code3');
                     container.scrollTop = target.offsetTop - (container.clientHeight / 3);
                 }
-            }, 150); // 給予 Tab 切換動畫足夠時間
+            }, 150);
         }
 
         // ================= 搜尋功能 =================
@@ -859,7 +843,9 @@
             const textarea = document.getElementById('code1');
             const linesBefore = text.substring(0, matchIndex).split('\n').length;
             const lineHeight = parseFloat(window.getComputedStyle(textarea).lineHeight) || 21;
-            textarea.parentElement.scrollTop = (linesBefore - 1) * lineHeight - (textarea.parentElement.clientHeight / 2);
+            
+            // 已修復：讓 textarea 直接捲動
+            textarea.scrollTop = (linesBefore - 1) * lineHeight - (textarea.clientHeight / 2);
 
             const part1 = escapeHTMLForSearch(text.substring(0, matchIndex));
             const part2 = `<mark class="search-match">${escapeHTMLForSearch(text.substring(matchIndex, matchIndex + query.length))}</mark>`;
@@ -923,7 +909,7 @@
         }
 
         function detectEncodingWarning(code) {
-            const suspicious = code.match(/[ÃÂÐÑæçåä�][\u0080-\u00bf–—]|�/g) || [];
+            const suspicious = code.match(/[ÃÂÐÑæçåä][\u0080-\u00bf–—]|/g) || [];
             return suspicious.length >= 2 ? t('synEncodingWarning') : '';
         }
 
@@ -1110,7 +1096,6 @@
             document.getElementById('code2').value = ''; document.getElementById('backdrop2').innerHTML = ''; updateEditor('2');
             document.getElementById('code3').value = ''; document.getElementById('backdrop3').innerHTML = ''; updateEditor('3');
             
-            // [智能體驗] 準備好下一階段時，如果在手機上，自動跳轉回 AI 頁籤等候用戶貼上新代碼！
             if (window.innerWidth < 1024) switchTab(2);
             
             showToast(t('msgReadyNext'));
@@ -1144,7 +1129,6 @@
             updateEditor('2'); 
             updateEditor('3'); 
 
-            // PWA: 註冊 Service Worker（用於安裝/快取）
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('./sw.js').catch(() => {});
             }
