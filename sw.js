@@ -2,7 +2,7 @@
    注意：本專案依賴多個 CDN（Tailwind / FontAwesome / Google Fonts / js-beautify）。
    離線時未必能完整載入外部資源；此 SW 主要用於讓網站可安裝、並快取本地檔案。 */
 
-const CACHE_NAME = 'codeblend-ai-v1';
+const CACHE_NAME = 'codeblend-ai-v2';
 
 // 只快取同源（同一個網站）嘅本地檔案
 const CORE_ASSETS = [
