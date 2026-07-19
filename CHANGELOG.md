@@ -22,3 +22,8 @@
 - 修正後會自動重新檢查，避免一次過改亂程式碼。
 - 載入檔案改用編碼辨識，支援 UTF-8、UTF-8 BOM、UTF-16、Big5、GB18030；疑似亂碼只會提示，不會擅自修改文字。
 - 語法修正只處理 HTML 標籤，不會改動 JavaScript、CSS 或中文內容。
+
+## Cross-browser update
+
+- Added explicit height and minimum-size rules for the desktop Flex layout so Edge does not collapse the editor panels.
+- Added box sizing and zero margins/borders to the code textareas for consistent sizing across Chromium browsers.
