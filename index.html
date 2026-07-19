@@ -41,7 +41,7 @@
             --safe-area-inset-right: env(safe-area-inset-right);
         }
         html { height: 100%; }
-        body { min-height: 100%; font-family: 'Inter', sans-serif; padding-bottom: var(--safe-area-inset-bottom); padding-top: var(--safe-area-inset-top); }
+        body.app-body { height: var(--app-height, 100vh); min-height: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; padding-bottom: var(--safe-area-inset-bottom); padding-top: var(--safe-area-inset-top); }
         main { min-height: 0; height: 0; }
         .code-font { font-family: 'Fira Code', monospace; }
         
@@ -68,7 +68,7 @@
         .highlight-backdrop {
             position: absolute; top: 0; left: 0; right: 0; min-height: 100%;
             padding: 12px; pointer-events: none; color: transparent; z-index: 1;
-            white-space: pre; font-size: 14px; line-height: 1.5;
+            white-space: pre; font-size: 14px; line-height: 1.5; box-sizing: border-box;
         }
         /* 黃色螢光筆高亮 */
         .highlight-backdrop mark { background-color: rgba(253, 224, 71, 0.7); color: transparent; border-radius: 2px; box-shadow: 0 0 0 1px rgba(234, 179, 8, 0.5); }
@@ -86,6 +86,12 @@
             main > [id^="col"] { min-width: 0; min-height: 0; height: 100%; }
         }
 
+        @media (max-width: 1023px) {
+            main { height: 0; }
+            main > [id^="col"] { min-width: 0; min-height: 0; height: 100%; }
+            .editor-container { height: 0; }
+        }
+
         /* 動畫 */
         @keyframes slideIn { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .toast-animate { animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
@@ -94,7 +100,7 @@
         .fade-in { animation: fadeIn 0.2s ease-out forwards; }
     </style>
 </head>
-    <body class="h-screen flex flex-col overflow-hidden bg-slate-100 text-slate-800 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-200">
+    <body class="app-body flex flex-col overflow-hidden bg-slate-100 text-slate-800 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-200">
 
     <!-- 頂部導航 -->
     <header class="bg-white dark:bg-slate-900 shadow-sm border-b border-slate-400 dark:border-slate-700 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center shrink-0 transition-colors duration-300 z-20">
@@ -1082,7 +1088,18 @@
             setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'all 0.3s ease'; setTimeout(() => toast.remove(), 300); }, 3000);
         }
 
+        function updateViewportHeight() {
+            const height = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+            document.documentElement.style.setProperty('--app-height', `${Math.round(height)}px`);
+        }
+
+        updateViewportHeight();
+        window.addEventListener('resize', updateViewportHeight);
+        window.addEventListener('orientationchange', updateViewportHeight);
+        if (window.visualViewport) window.visualViewport.addEventListener('resize', updateViewportHeight);
+
         window.onload = () => { 
+            updateViewportHeight();
             applyLanguage();
             updateEditor('1'); 
             updateEditor('2'); 

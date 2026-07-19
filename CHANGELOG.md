@@ -27,3 +27,7 @@
 
 - Added explicit height and minimum-size rules for the desktop Flex layout so Edge does not collapse the editor panels.
 - Added box sizing and zero margins/borders to the code textareas for consistent sizing across Chromium browsers.
+
+## Mobile browser viewport update
+
+- The app now follows the visible browser viewport using `visualViewport`, so the address bar and phone home gesture area no longer cover the bottom controls.
