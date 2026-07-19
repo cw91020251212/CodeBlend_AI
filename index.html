@@ -594,6 +594,27 @@
             lineCountLabel.innerHTML = `📄 ${count} <span class="lineLabel">${t('lineUnit')}</span>`;
         }
 
+        function copyAIPrompt() {
+            const prompt = `I am using a smart code editor that can automatically replace components in my HTML file. To ensure your response can be correctly parsed and applied, please follow these rules:
+
+1. **Provide Complete Blocks**: Always wrap your code in standard Markdown code blocks (\`\`\`html ... \`\`\`).
+2. **Component-Based Output**: 
+   - If you are modifying an existing HTML element, provide the **entire outer tag** of that element (e.g., provide the whole <div id="header">...</div> instead of just the inner content).
+   - My editor will find the first matching tag in my original code and replace it with your version.
+3. **CSS & JS Handling**:
+   - If you provide a <style> block, it will be automatically injected into the <head>.
+   - If you provide a <script> block, it will be automatically injected before </body>.
+4. **Avoid Fragments**: Do not provide partial attributes or disconnected lines of code.
+
+Please acknowledge these instructions and provide the updated code accordingly.`;
+            
+            navigator.clipboard.writeText(prompt).then(() => {
+                showToast(t('msgPromptCopy'));
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+
         function syncScroll(scrollableLayer, gutterId, backdropId) {
             document.getElementById(gutterId).scrollTop = scrollableLayer.scrollTop;
             const backdrop = document.getElementById(backdropId);
