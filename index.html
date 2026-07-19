@@ -250,6 +250,9 @@
 
             <!-- 替換操作按鈕 -->
             <div class="bg-white dark:bg-slate-800 p-3 sm:p-4 pb-[calc(1rem+var(--safe-area-inset-bottom))] sm:pb-4 border-t border-slate-400 dark:border-slate-600 grid grid-cols-1 sm:grid-cols-2 gap-3 shrink-0">
+                <button onclick="copyAIPrompt()" data-i18n-title="titlePrompt" class="w-full bg-slate-100 dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-600 py-3 sm:py-2 px-3 rounded-lg text-sm sm:text-base font-bold transition shadow-sm flex justify-center items-center gap-2 col-span-1 sm:col-span-2 mb-1">
+                    <i class="fa-solid fa-comment-dots"></i> <span data-i18n="btnPrompt">指令</span>
+                </button>
                 <button onclick="performSmartReplace()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-800 dark:border-indigo-500 py-3 sm:py-2 px-3 rounded-lg text-sm sm:text-base font-bold transition shadow-sm flex justify-center items-center gap-2">
                     <i class="fa-solid fa-brain"></i> <span data-i18n="btnSmartReplace">🧠 智能分析替換</span>
                 </button>
@@ -388,6 +391,9 @@
                 msgAutoCopy: "已自動複製代碼！",
                 msgReadyNext: "🔄 已準備好接續處理下一段！",
                 msgVisualReady: "🖱️ 視覺點擊準備就緒。",
+                btnPrompt: "指令",
+                titlePrompt: "複製 AI 輸出指引 (讓 AI 產出更準確的代碼)",
+                msgPromptCopy: "📋 AI 指引已複製！請貼給 ChatGPT/Claude。",
                 // 語法檢查器用
                 synPerfectTitle: "完美！代碼非常健康",
                 synPerfectDesc: "冇發現任何漏寫括號或未閂埋嘅標籤。",
@@ -476,6 +482,9 @@
                 msgAutoCopy: "Code auto-copied to clipboard!",
                 msgReadyNext: "🔄 Ready to continue to the next section!",
                 msgVisualReady: "🖱️ Visual click is ready.",
+                btnPrompt: "Prompt",
+                titlePrompt: "Copy AI Output Guidelines (make AI generate more accurate code)",
+                msgPromptCopy: "📋 AI guidelines copied! Paste them to ChatGPT/Claude.",
                 // Syntax checker
                 synPerfectTitle: "Perfect! Code is healthy",
                 synPerfectDesc: "No unclosed tags or missing brackets found.",
@@ -595,18 +604,19 @@
         }
 
         function copyAIPrompt() {
-            const prompt = `I am using a smart code editor that can automatically replace components in my HTML file. To ensure your response can be correctly parsed and applied, please follow these rules:
+            const prompt = `我正在使用一款具備「智能替換」功能的 HTML 編輯器。為了確保你能產出可被系統正確解析並自動替換的代碼，請遵循以下輸出規範：
 
-1. **Provide Complete Blocks**: Always wrap your code in standard Markdown code blocks (\`\`\`html ... \`\`\`).
-2. **Component-Based Output**: 
-   - If you are modifying an existing HTML element, provide the **entire outer tag** of that element (e.g., provide the whole <div id="header">...</div> instead of just the inner content).
-   - My editor will find the first matching tag in my original code and replace it with your version.
-3. **CSS & JS Handling**:
-   - If you provide a <style> block, it will be automatically injected into the <head>.
-   - If you provide a <script> block, it will be automatically injected before </body>.
-4. **Avoid Fragments**: Do not provide partial attributes or disconnected lines of code.
+【輸出規則 / Output Rules】
+1. **提供完整代碼塊 (Markdown Blocks)**: 始終將代碼包裹在標準的 \`\`\`html ... \`\`\` 區塊中。
+2. **組件化完整輸出 (Full Component Output)**: 
+   - 如果你修改了某個 HTML 元素，請提供該元素的「完整外層標籤」（例如：提供整個 <div id="header">...</div> 而不僅僅是內部的文字）。
+   - 我的系統會自動尋找原始代碼中第一個匹配的標籤並進行「完整替換」。
+3. **CSS 與 JS 自動注入**:
+   - 如果你提供 <style> 標籤，系統會自動將其注入到 <head> 區塊。
+   - 如果你提供 <script> 標籤，系統會自動將其注入到 </body> 結束前。
+4. **避免代碼片段 (Avoid Fragments)**: 不要只提供屬性片段或斷開的代碼行。
 
-Please acknowledge these instructions and provide the updated code accordingly.`;
+請確認收到此指引，並根據此格式提供更新後的代碼。`;
             
             navigator.clipboard.writeText(prompt).then(() => {
                 showToast(t('msgPromptCopy'));
