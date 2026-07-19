@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI HTML 融合助手 (終極完全體)</title>
+    
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // 設定 Tailwind 支援 class 模式的黑夜主題
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: {} }
+        }
+    </script>
+    
+    <!-- 引入 FontAwesome 圖示 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- 引入字體 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- 引入自動排版引擎 js-beautify -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.14.9/beautify-html.min.js"></script>
+
+    <style>
+        :root {
+            --safe-area-inset-bottom: env(safe-area-inset-bottom);
+        }
+        body { font-family: 'Inter', sans-serif; padding-bottom: var(--safe-area-inset-bottom); }
+        .code-font { font-family: 'Fira Code', monospace; }
+        
+        /* 強化版捲動條 */
+        ::-webkit-scrollbar { width: 12px; height: 12px; }
+        ::-webkit-scrollbar-track { background: #e2e8f0; border-radius: 6px; box-shadow: inset 0 0 5px rgba(0,0,0,0.05); }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 6px; border: 2px solid #e2e8f0; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        
+        /* 黑夜模式捲動條 */
+        .dark ::-webkit-scrollbar-track { background: #1e293b; border-color: #0f172a; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; border-color: #1e293b; }
+        .dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+        /* 編輯器核心設定 */
+        textarea { white-space: pre !important; overflow-wrap: normal !important; overflow-x: auto; tab-size: 4; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .editor-container { position: relative; display: flex; flex: 1; overflow: hidden; height: 100%; }
+        .gutter { width: 48px; text-align: right; padding: 12px 8px 12px 0; border-right: 1px solid; user-select: none; z-index: 10; height: 100%; overflow: hidden; }
+        .code-layer { flex: 1; position: relative; overflow: auto; height: 100%; }
+        
+        .highlight-backdrop {
+            position: absolute; top: 0; left: 0; right: 0; min-height: 100%;
+            padding: 12px; pointer-events: none; color: transparent; z-index: 1;
+            white-space: pre; font-size: 14px; line-height: 1.5;
+        }
+        /* 黃色螢光筆高亮 */
+        .highlight-backdrop mark { background-color: rgba(253, 224, 71, 0.7); color: transparent; border-radius: 2px; box-shadow: 0 0 0 1px rgba(234, 179, 8, 0.5); }
+        .dark .highlight-backdrop mark { background-color: rgba(234, 179, 8, 0.5); box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.6); }
+        
+        /* 搜尋匹配高亮 */
+        .highlight-backdrop .search-match { background-color: rgba(59, 130, 246, 0.5); border-radius: 2px; }
+
+        .code-input {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            padding: 12px; background: transparent; z-index: 2; resize: none; outline: none; font-size: 14px; line-height: 1.5;
+        }
+
+        /* 動畫 */
+        @keyframes slideIn { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .toast-animate { animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .fade-in { animation: fadeIn 0.2s ease-out forwards; }
+    </style>
+</head>
+    <body class="min-h-screen flex flex-col overflow-hidden bg-slate-100 text-slate-800 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-200">
+
+    <!-- 頂部導航 -->
+    <header class="bg-white dark:bg-slate-900 shadow-sm border-b border-slate-400 dark:border-slate-700 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center shrink-0 transition-colors duration-300 z-20">
+        <div class="flex items-center gap-3">
+            <div class="bg-blue-600 text-white p-2 rounded-lg shadow-sm border border-blue-800"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+            <h1 class="text-lg sm:text-xl font-bold"><span data-i18n="appTitle">AI HTML 融合助手</span> <span data-i18n="appVersion" class="text-xs font-normal text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-300 dark:border-slate-600 ml-2 hidden sm:inline-block">終極版</span></h1>
+        </div>
+        <div class="flex items-center gap-3">
+            <!-- 語言切換掣 -->
+            <button onclick="toggleLanguage()" class="px-3 h-9 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-sm hover:bg-slate-300 dark:hover:bg-slate-700 transition border border-slate-400 dark:border-slate-600 shadow-sm flex items-center justify-center gap-2" data-i18n-title="langTitle" title="Switch Language / 切換語言">
+                <i class="fa-solid fa-globe"></i> <span id="currentLangLabel">EN</span>
+            </button>
+            <!-- 黑夜模式切換掣 -->
+            <button onclick="toggleDarkMode()" class="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-amber-400 hover:bg-slate-300 dark:hover:bg-slate-700 flex items-center justify-center transition border border-slate-400 dark:border-slate-600 shadow-sm" data-i18n-title="themeTitle" title="切換日夜模式">
+                <i id="themeIcon" class="fa-solid fa-moon"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- 彈出通知容器 -->
+    <div id="toastContainer" class="fixed top-4 right-1/2 translate-x-1/2 z-[150] flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- 手機端分頁導航 (只有 lg 螢幕以下顯示) -->
+    <div class="flex lg:hidden bg-white dark:bg-slate-900 border-b border-slate-300 dark:border-slate-700 p-2 gap-2 overflow-x-auto shrink-0 shadow-sm z-10">
+        <button onclick="switchTab(1)" id="tabBtn1" class="flex-1 min-w-[80px] py-2 px-2 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-bold border border-blue-300 dark:border-blue-700 text-sm flex items-center justify-center gap-1.5 transition-colors shadow-sm">
+            <span id="tabBadge1" class="bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]">1</span> <span data-i18n="tab1">原始</span>
+        </button>
+        <button onclick="switchTab(2)" id="tabBtn2" class="flex-1 min-w-[80px] py-2 px-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium border border-slate-300 dark:border-slate-600 text-sm flex items-center justify-center gap-1.5 transition-colors shadow-sm">
+            <span id="tabBadge2" class="bg-slate-400 dark:bg-slate-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]">2</span> <span data-i18n="tab2">AI回覆</span>
+        </button>
+        <button onclick="switchTab(3)" id="tabBtn3" class="flex-1 min-w-[80px] py-2 px-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium border border-slate-300 dark:border-slate-600 text-sm flex items-center justify-center gap-1.5 transition-colors shadow-sm">
+            <span id="tabBadge3" class="bg-slate-400 dark:bg-slate-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]">3</span> <span data-i18n="tab3">結果</span>
+        </button>
+    </div>
+
+    <!-- 即時預覽彈出視窗 (Modal) -->
+    <div id="previewModal" class="hidden fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 fade-in">
+        <div class="bg-white dark:bg-slate-900 rounded-xl w-full max-w-6xl h-[90vh] flex flex-col shadow-2xl border border-slate-400 dark:border-slate-600 overflow-hidden">
+            <div class="p-2 sm:p-3 border-b border-slate-300 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800 shrink-0 gap-2">
+                <h3 class="font-bold flex items-center gap-2"><i class="fa-solid fa-eye text-blue-600"></i> <span data-i18n="previewModalTitle" class="hidden sm:inline">網頁即時預覽</span></h3>
+                <div class="flex items-center gap-2">
+                    <!-- 設備切換掣 -->
+                    <div class="flex bg-slate-200 dark:bg-slate-700 p-1 rounded-lg gap-1 border border-slate-300 dark:border-slate-600 shadow-inner">
+                        <button id="btnMobilePreview" onclick="setPreviewMode('mobile')" class="px-2 sm:px-3 py-1 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:bg-white dark:hover:bg-slate-800 transition flex items-center gap-1"><i class="fa-solid fa-mobile-screen"></i> <span data-i18n="btnMobile" class="hidden sm:inline">手機</span></button>
+                        <button id="btnDesktopPreview" onclick="setPreviewMode('desktop')" class="px-2 sm:px-3 py-1 rounded-md text-sm font-medium text-blue-600 bg-white dark:text-blue-400 dark:bg-slate-800 shadow-sm transition flex items-center gap-1"><i class="fa-solid fa-desktop"></i> <span data-i18n="btnDesktop" class="hidden sm:inline">電腦</span></button>
+                    </div>
+                    <span class="text-xs text-slate-500 hidden md:block" data-i18n="previewWarning">實際效果依賴外部資源可能會有偏差</span>
+                    <button onclick="closePreview()" class="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 font-bold px-2 sm:px-3 py-1 border border-red-300 dark:border-red-800 rounded transition shadow-sm flex items-center gap-1"><i class="fa-solid fa-xmark"></i> <span data-i18n="btnClose" class="hidden sm:inline">關閉</span></button>
+                </div>
+            </div>
+            <!-- 預覽容器 -->
+            <div class="flex-1 bg-slate-300/30 dark:bg-black/40 overflow-y-auto flex flex-col items-center">
+                <iframe id="previewFrame" class="w-full h-full bg-white transition-all duration-300 border-none shrink-0 shadow-lg"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- 語法檢查報告視窗 (Modal) -->
+    <div id="syntaxModal" class="hidden fixed inset-0 z-[110] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 fade-in">
+        <div class="bg-white dark:bg-slate-900 rounded-xl w-full max-w-lg flex flex-col shadow-2xl border border-slate-400 dark:border-slate-600 overflow-hidden">
+            <div class="p-3 border-b border-slate-300 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800 shrink-0">
+                <h3 class="font-bold flex items-center gap-2"><i class="fa-solid fa-stethoscope text-red-500"></i> <span data-i18n="syntaxModalTitle">代碼健康檢查報告</span></h3>
+                <button onclick="closeSyntaxModal()" class="text-slate-500 hover:text-red-600 transition"><i class="fa-solid fa-xmark fa-lg"></i></button>
+            </div>
+            <div id="syntaxReportContent" class="p-4 max-h-[60vh] overflow-y-auto text-sm space-y-3">
+                <!-- 報告內容會喺度生成 -->
+            </div>
+            <div class="p-3 bg-slate-50 dark:bg-slate-800 border-t border-slate-300 dark:border-slate-700 text-right">
+                <button onclick="closeSyntaxModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition shadow-sm border border-blue-800"><span data-i18n="btnGotIt">我知道了</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要工作區 (強制 overflow-hidden，讓內部編輯器自己捲動) -->
+    <main class="flex-1 flex flex-col lg:flex-row p-3 sm:p-4 gap-4 overflow-hidden relative">
+        
+        <!-- ================= 第 1 欄：原始 HTML ================= -->
+        <!-- 預設在手機端顯示 (flex)，桌面端一定顯示 (lg:flex) -->
+        <div id="col1" class="flex lg:flex flex-col flex-1 h-full bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-400 dark:border-slate-600 overflow-hidden transition-colors duration-300">
+            <div class="bg-slate-50 dark:bg-slate-800 px-3 py-2 border-b border-slate-400 dark:border-slate-600 flex justify-between items-center shrink-0 flex-wrap gap-2">
+                <h2 class="text-sm font-bold flex items-center gap-2">
+                    <span class="bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400 rounded-full w-6 h-6 flex items-center justify-center text-xs border border-blue-300 dark:border-blue-700">1</span>
+                    <span data-i18n="col1Title">你的原始檔案</span>
+                </h2>
+                <div class="flex items-center flex-wrap gap-1 sm:gap-2">
+                    <!-- 復原按鈕 -->
+                    <button id="undoBtn" onclick="undoLast()" data-i18n-title="titleUndo" class="text-xs bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-500 px-2 py-1.5 sm:py-1 rounded shadow-sm opacity-50 cursor-not-allowed transition hover:bg-slate-100 dark:hover:bg-slate-600" title="復原上一次替換 (Ctrl+Z)">
+                        <i class="fa-solid fa-rotate-left"></i> <span data-i18n="btnUndo" class="hidden sm:inline">復原</span>
+                    </button>
+                    <!-- 自動排版按鈕 -->
+                    <button onclick="formatHTML('1')" data-i18n-title="titleFormat" class="text-xs bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-400 border border-slate-400 dark:border-slate-500 px-2 py-1.5 sm:py-1 rounded shadow-sm transition" title="整理代碼縮排">
+                        <i class="fa-solid fa-broom"></i> <span data-i18n="btnFormat" class="hidden sm:inline">排版</span>
+                    </button>
+                    <!-- 載入檔案按鈕 -->
+                    <button onclick="document.getElementById('fileUpload').click()" class="text-xs bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-400 dark:border-slate-500 px-2 py-1.5 sm:py-1 rounded shadow-sm transition">
+                        <i class="fa-solid fa-folder-open"></i> <span data-i18n="btnLoad" class="hidden sm:inline">載入</span>
+                    </button>
+                    <input type="file" id="fileUpload" class="hidden" accept=".html,.htm,.txt" onchange="handleFileUpload(event)">
+                    <!-- 搜尋按鈕 -->
+                    <button onclick="openSearch()" data-i18n-title="titleSearch" class="text-xs bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-400 dark:border-slate-500 px-2 py-1.5 sm:py-1 rounded shadow-sm transition" title="搜尋 (Ctrl+F)">
+                        <i class="fa-solid fa-magnifying-glass"></i> <span data-i18n="btnSearch" class="hidden lg:inline">搜尋</span>
+                    </button>
+                    <span id="lineCount1" class="hidden lg:inline-block text-xs font-mono bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-400 dark:border-slate-600 shadow-sm">📄 0 <span class="lineLabel">行</span></span>
+                </div>
+            </div>
+            
+            <!-- 搜尋浮動視窗 -->
+            <div id="searchOverlay" class="hidden absolute top-14 left-1/2 -translate-x-1/2 lg:left-auto lg:right-4 lg:translate-x-0 bg-white dark:bg-slate-800 shadow-xl border border-slate-500 dark:border-slate-400 rounded-lg p-2 items-center gap-2 z-20">
+                <i class="fa-solid fa-magnifying-glass text-slate-500 dark:text-slate-400"></i>
+                <input type="text" id="searchInput" data-i18n-placeholder="searchPlaceholder" placeholder="尋找代碼 (Ctrl+F)..." class="px-2 py-1 text-sm outline-none w-40 sm:w-48 bg-slate-50 dark:bg-slate-900 rounded border border-slate-400 dark:border-slate-600 focus:border-blue-500 dark:text-white">
+                <span id="searchMatchCount" class="text-xs text-slate-600 dark:text-slate-400 font-mono w-12 text-center">0/0</span>
+                <div class="flex border-l border-slate-400 dark:border-slate-600 pl-2 gap-1">
+                    <button onclick="findPrev()" class="p-1 text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-700 rounded border border-transparent"><i class="fa-solid fa-chevron-up"></i></button>
+                    <button onclick="findNext()" class="p-1 text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-700 rounded border border-transparent"><i class="fa-solid fa-chevron-down"></i></button>
+                    <button onclick="closeSearch()" class="p-1 text-slate-500 dark:text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded ml-1 border border-transparent"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            </div>
+
+            <!-- 編輯器 1 核心 -->
+            <div class="editor-container bg-white dark:bg-slate-950 flex-1">
+                <div id="gutter1" class="gutter code-font text-xs bg-slate-50 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500">1</div>
+                <div class="code-layer" onscroll="syncScroll(this, 'gutter1', 'backdrop1')">
+                    <div id="backdrop1" class="highlight-backdrop code-font"></div>
+                    <textarea id="code1" class="code-input code-font no-scrollbar text-slate-800 dark:text-slate-300 h-full w-full" data-i18n-placeholder="placeholder1" placeholder="按右上角載入檔案，或貼上原本的 HTML 檔案代碼..." oninput="updateEditor('1')" spellcheck="false"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= 第 2 欄：AI 提供的代碼 ================= -->
+        <!-- 預設在手機端隱藏 (hidden)，桌面端一定顯示 (lg:flex) -->
+        <div id="col2" class="hidden lg:flex flex-col flex-1 h-full bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-400 dark:border-slate-600 overflow-hidden border-t-2 border-t-indigo-600 transition-colors duration-300">
+            <div class="bg-indigo-50 dark:bg-indigo-950 px-3 py-2 border-b border-slate-400 dark:border-slate-600 flex justify-between items-center shrink-0">
+                <h2 class="text-sm font-bold flex items-center gap-2 text-indigo-800 dark:text-indigo-300">
+                    <span class="bg-indigo-200 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-200 rounded-full w-6 h-6 flex items-center justify-center text-xs border border-indigo-300 dark:border-indigo-600">2</span>
+                    <span data-i18n="col2Title">AI 回覆 (連中文字貼上)</span>
+                </h2>
+                <span id="lineCount2" class="hidden lg:inline-block text-xs font-mono bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-400 dark:border-slate-600 shadow-sm text-indigo-700 dark:text-indigo-400">📄 0 <span class="lineLabel">行</span></span>
+            </div>
+            
+            <div class="editor-container bg-indigo-50/30 dark:bg-indigo-950/20 flex-1">
+                <div id="gutter2" class="gutter code-font text-xs bg-indigo-50/50 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500">1</div>
+                <div class="code-layer" onscroll="syncScroll(this, 'gutter2', 'backdrop2')">
+                    <div id="backdrop2" class="highlight-backdrop code-font"></div>
+                    <textarea id="code2" class="code-input code-font no-scrollbar text-slate-800 dark:text-slate-300 h-full w-full" data-i18n-placeholder="placeholder2" placeholder="直接將 ChatGPT/Claude 的整段回答(包含解釋)貼喺度！&#10;系統識得自動過濾中文，抽出純代碼。" oninput="updateEditor('2')" spellcheck="false"></textarea>
+                </div>
+            </div>
+
+            <!-- 替換操作按鈕 -->
+            <div class="bg-white dark:bg-slate-800 p-3 sm:p-4 pb-[calc(0.75rem+var(--safe-area-inset-bottom))] sm:pb-4 border-t border-slate-400 dark:border-slate-600 grid grid-cols-1 sm:grid-cols-2 gap-3 shrink-0">
+                <button onclick="performSmartReplace()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-800 dark:border-indigo-500 py-3 sm:py-2 px-3 rounded-lg text-sm sm:text-base font-bold transition shadow-sm flex justify-center items-center gap-2">
+                    <i class="fa-solid fa-brain"></i> <span data-i18n="btnSmartReplace">🧠 智能分析替換</span>
+                </button>
+                <button onclick="visualReplaceMock()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white border border-emerald-800 dark:border-emerald-500 py-3 sm:py-2 px-3 rounded-lg text-sm sm:text-base font-bold transition shadow-sm flex justify-center items-center gap-2">
+                    <i class="fa-solid fa-hand-pointer"></i> <span data-i18n="btnVisualReplace">🖱️ 視覺化點擊</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ================= 第 3 欄：融合結果 ================= -->
+        <!-- 預設在手機端隱藏 (hidden)，桌面端一定顯示 (lg:flex) -->
+        <div id="col3" class="hidden lg:flex flex-col flex-1 h-full bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-400 dark:border-slate-600 overflow-hidden border-t-2 border-t-green-600 transition-colors duration-300">
+            <div class="bg-green-50 dark:bg-green-950 px-3 py-2 border-b border-slate-400 dark:border-slate-600 flex justify-between items-center shrink-0 flex-wrap gap-2">
+                <h2 class="text-sm font-bold flex items-center gap-2 text-green-800 dark:text-green-300">
+                    <span class="bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 rounded-full w-6 h-6 flex items-center justify-center text-xs border border-green-300 dark:border-green-600">3</span>
+                    <span data-i18n="col3Title">最終代碼結果</span>
+                </h2>
+                <div class="flex items-center gap-1 sm:gap-2 flex-wrap">
+                    <button onclick="checkHTMLErrors()" data-i18n-title="titleCheck" class="text-xs bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-red-500 dark:hover:text-red-400 border border-slate-400 dark:border-slate-500 px-2 py-1.5 sm:py-1 rounded shadow-sm transition" title="檢查漏寫括號或結尾">
+                        <i class="fa-solid fa-stethoscope"></i> <span data-i18n="btnCheck" class="hidden sm:inline">檢查</span>
+                    </button>
+                    <button onclick="openPreview()" data-i18n-title="titlePreview" class="text-xs bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-400 dark:border-slate-500 px-2 py-1.5 sm:py-1 rounded shadow-sm transition" title="即時渲染網頁效果">
+                        <i class="fa-solid fa-eye"></i> <span data-i18n="btnPreview" class="hidden sm:inline">預覽</span>
+                    </button>
+                    <span id="lineCount3" class="hidden lg:inline-block text-xs font-mono bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-400 dark:border-slate-600 shadow-sm text-green-700 dark:text-green-400">📄 0 <span class="lineLabel">行</span></span>
+                </div>
+            </div>
+            
+            <div class="editor-container bg-green-50/10 dark:bg-green-950/10 flex-1">
+                <div id="gutter3" class="gutter code-font text-xs bg-green-50/50 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500">1</div>
+                <div class="code-layer" onscroll="syncScroll(this, 'gutter3', 'backdrop3')">
+                    <div id="backdrop3" class="highlight-backdrop code-font"></div>
+                    <textarea id="code3" class="code-input code-font no-scrollbar text-slate-800 dark:text-slate-300 h-full w-full" data-i18n-placeholder="placeholder3" placeholder="替換後的結果會顯示喺度。新增嘅部分會有黃色螢光筆標示。" oninput="updateEditor('3')" spellcheck="false" readonly></textarea>
+                </div>
+            </div>
+
+            <!-- 結果匯出按鈕 -->
+            <div class="bg-slate-100 dark:bg-slate-800 p-3 sm:p-4 pb-[calc(0.75rem+var(--safe-area-inset-bottom))] sm:pb-4 border-t border-slate-400 dark:border-slate-600 grid grid-cols-3 lg:flex gap-2 shrink-0">
+                <button onclick="copyResult()" class="w-full lg:flex-1 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-500 dark:border-slate-400 py-2 sm:py-2 px-1 sm:px-2 rounded-lg text-xs sm:text-sm font-medium transition shadow-sm">
+                    <i class="fa-regular fa-copy"></i> <span data-i18n="btnCopy">複製</span>
+                </button>
+                <button onclick="shareResult()" class="w-full lg:flex-1 bg-blue-500 hover:bg-blue-600 text-white border border-blue-800 dark:border-blue-500 py-2 sm:py-2 px-1 sm:px-2 rounded-lg text-xs sm:text-sm font-medium transition shadow-sm">
+                    <i class="fa-solid fa-share-nodes"></i> <span data-i18n="btnShare">分享</span>
+                </button>
+                <button onclick="saveFile()" class="w-full lg:flex-1 bg-purple-600 hover:bg-purple-700 text-white border border-purple-800 dark:border-purple-500 py-2 sm:py-2 px-1 sm:px-2 rounded-lg text-xs sm:text-sm font-medium transition shadow-sm">
+                    <i class="fa-solid fa-floppy-disk"></i> <span data-i18n="btnSave">另存</span>
+                </button>
+                <button onclick="continueNextStep()" class="col-span-3 lg:col-span-1 w-full bg-amber-400 hover:bg-amber-500 text-amber-900 border border-amber-700 dark:border-amber-600 py-3 sm:py-2 px-4 rounded-lg text-sm sm:text-base font-bold transition shadow-sm flex justify-center items-center gap-2 mt-1 lg:mt-0">
+                    <i class="fa-solid fa-arrow-right-arrow-left"></i> <span data-i18n="btnNextStep">繼續下一段</span>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // ================= 國際化 (i18n) 語言字典 =================
+        const i18n = {
+            zh: {
+                appTitle: "CodeBlend AI",
+                appVersion: "終極版",
+                langTitle: "Switch to English",
+                langLabel: "EN",
+                themeTitle: "切換日夜模式",
+                // 新增 Tab 翻譯
+                tab1: "原始",
+                tab2: "AI回覆",
+                tab3: "結果",
+                
+                col1Title: "你的原始檔案",
+                col2Title: "AI 回覆 (連中文字貼上)",
+                col3Title: "最終代碼結果",
+                btnUndo: "復原",
+                titleUndo: "復原上一次替換 (Ctrl+Z)",
+                btnFormat: "排版",
+                titleFormat: "整理代碼縮排",
+                btnLoad: "載入",
+                btnSearch: "搜尋",
+                titleSearch: "搜尋 (Ctrl+F)",
+                searchPlaceholder: "尋找代碼 (Ctrl+F)...",
+                btnSmartReplace: "🧠 智能分析替換",
+                btnVisualReplace: "🖱️ 視覺化點擊",
+                btnCheck: "檢查",
+                titleCheck: "檢查漏寫括號或結尾",
+                btnPreview: "預覽",
+                titlePreview: "即時渲染網頁效果",
+                btnCopy: "複製",
+                btnShare: "分享",
+                btnSave: "另存",
+                btnNextStep: "繼續下一段",
+                placeholder1: "按右上角載入檔案，或貼上原本的 HTML 檔案代碼...",
+                placeholder2: "直接將 ChatGPT/Claude 的整段回答(包含解釋)貼喺度！\n系統識得自動過濾中文，抽出純代碼。",
+                placeholder3: "替換後的結果會顯示喺度。新增嘅部分會有黃色螢光筆標示。",
+                lineUnit: "行",
+                previewModalTitle: "網頁即時預覽",
+                btnMobile: "手機",
+                btnDesktop: "電腦",
+                previewWarning: "實際效果依賴外部資源可能會有偏差",
+                btnClose: "關閉",
+                syntaxModalTitle: "代碼健康檢查報告",
+                btnGotIt: "我知道了",
+                // JS 動態通知
+                msgUndo: "↩️ 已復原至上一個狀態",
+                msgFormatSuccess: "✨ 代碼已自動排版整齊！",
+                msgFormatFail: "排版失敗，請檢查代碼結構。",
+                msgNeedOrig: "請先在左側貼上原始檔案",
+                msgNeedAI: "請貼上 AI 的回覆內容",
+                msgDirectCopy: "➡️ 未輸入 AI 代碼，已將原代碼直接複製至結果區",
+                msgInjectCSS: "✨ 智能判斷：已將 CSS 注入到 <head> 區塊",
+                msgInjectJS: "✨ 智能判斷：已將 JS 腳本注入到 </body> 底部",
+                msgReplaceSuccess: "✨ 智能替換成功！",
+                msgAppendEnd: "找不到精準位置，已將代碼安全附加在檔案結尾",
+                msgNoPreview: "無結果可預覽，請先進行替換",
+                msgNoCheck: "冇代碼可以檢查！請先進行替換。",
+                msgFileLoaded: "📁 檔案已載入",
+                msgNoSave: "無內容可儲存",
+                msgSaveSuccess: "💾 檔案另存成功！",
+                msgDownload: "📥 檔案已下載！",
+                msgSaveFail: "儲存失敗",
+                msgCopy: "📋 乾淨代碼已複製！",
+                msgShareSuccess: "🚀 分享成功！",
+                msgAutoCopy: "已自動複製代碼！",
+                msgReadyNext: "🔄 已準備好接續處理下一段！",
+                msgVisualReady: "🖱️ 視覺點擊準備就緒。",
+                // 語法檢查器用
+                synPerfectTitle: "完美！代碼非常健康",
+                synPerfectDesc: "冇發現任何漏寫括號或未閂埋嘅標籤。",
+                synErrorTitle: "發現 {n} 個潛在語法錯誤",
+                synErrorDesc: "AI 可能寫漏咗嘢，建議你檢查一下以下位置：",
+                synExtraClose: "❌ 多出咗未配對嘅結束標籤:",
+                synMismatch: "⚠️ 標籤錯配: 預期要閂 <b>&lt;/{expected}&gt;</b>，但見到 <b>&lt;/{actual}&gt;</b>",
+                synMissingClose: "🚨 漏咗結尾標籤:"
+            },
+            en: {
+                appTitle: "AI HTML Merger",
+                appVersion: "Ultimate",
+                langTitle: "切換至中文",
+                langLabel: "中",
+                themeTitle: "Toggle Dark Mode",
+                
+                tab1: "Original",
+                tab2: "AI Reply",
+                tab3: "Result",
+                
+                col1Title: "Your Original File",
+                col2Title: "AI Response (Paste All)",
+                col3Title: "Final Code Result",
+                btnUndo: "Undo",
+                titleUndo: "Undo last replacement (Ctrl+Z)",
+                btnFormat: "Format",
+                titleFormat: "Format code indentation",
+                btnLoad: "Load",
+                btnSearch: "Search",
+                titleSearch: "Search (Ctrl+F)",
+                searchPlaceholder: "Find code (Ctrl+F)...",
+                btnSmartReplace: "🧠 Smart Replace",
+                btnVisualReplace: "🖱️ Visual Click",
+                btnCheck: "Check",
+                titleCheck: "Check missing brackets/tags",
+                btnPreview: "Preview",
+                titlePreview: "Live rendering of webpage",
+                btnCopy: "Copy",
+                btnShare: "Share",
+                btnSave: "Save As",
+                btnNextStep: "Next Step",
+                placeholder1: "Load file from top right, or paste your original HTML code here...",
+                placeholder2: "Paste the full ChatGPT/Claude response (including explanations) here!\nSystem automatically filters out text and extracts pure code.",
+                placeholder3: "Replaced result will be shown here. New parts are highlighted in yellow.",
+                lineUnit: "Lines",
+                previewModalTitle: "Live Web Preview",
+                btnMobile: "Mobile",
+                btnDesktop: "Desktop",
+                previewWarning: "Actual view depends on external resources",
+                btnClose: "Close",
+                syntaxModalTitle: "Code Health Report",
+                btnGotIt: "Got it",
+                // JS Dynamic messages
+                msgUndo: "↩️ Undone to previous state",
+                msgFormatSuccess: "✨ Code formatted successfully!",
+                msgFormatFail: "Format failed, check code structure.",
+                msgNeedOrig: "Please paste your original file on the left first",
+                msgNeedAI: "Please paste the AI response",
+                msgDirectCopy: "➡️ No AI code provided, original code copied to result",
+                msgInjectCSS: "✨ Smart: CSS injected into <head> block",
+                msgInjectJS: "✨ Smart: JS script injected before </body>",
+                msgReplaceSuccess: "✨ Smart replace successful!",
+                msgAppendEnd: "Exact location not found, safely appended to end of file",
+                msgNoPreview: "Nothing to preview, replace code first",
+                msgNoCheck: "No code to check! Please replace code first.",
+                msgFileLoaded: "📁 File loaded",
+                msgNoSave: "Nothing to save",
+                msgSaveSuccess: "💾 File saved successfully!",
+                msgDownload: "📥 File downloaded!",
+                msgSaveFail: "Save failed",
+                msgCopy: "📋 Clean code copied!",
+                msgShareSuccess: "🚀 Shared successfully!",
+                msgAutoCopy: "Code auto-copied to clipboard!",
+                msgReadyNext: "🔄 Ready to continue to the next section!",
+                msgVisualReady: "🖱️ Visual click is ready.",
+                // Syntax checker
+                synPerfectTitle: "Perfect! Code is healthy",
+                synPerfectDesc: "No unclosed tags or missing brackets found.",
+                synErrorTitle: "Found {n} potential syntax errors",
+                synErrorDesc: "AI might have missed something, check these locations:",
+                synExtraClose: "❌ Extra unmatched closing tag:",
+                synMismatch: "⚠️ Tag mismatch: Expected to close <b>&lt;/{expected}&gt;</b>, found <b>&lt;/{actual}&gt;</b>",
+                synMissingClose: "🚨 Missing closing tag:"
+            }
+        };
+
+        let currentLang = localStorage.getItem('appLang') || 'zh';
+
+        function t(key) {
+            return i18n[currentLang][key] || key;
+        }
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            localStorage.setItem('appLang', currentLang);
+            applyLanguage();
+            updateEditor('1'); updateEditor('2'); updateEditor('3');
+        }
+
+        function applyLanguage() {
+            document.title = t('appTitle') + " (" + t('appVersion') + ")";
+            document.getElementById('currentLangLabel').innerText = t('langLabel');
+            
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (i18n[currentLang][key]) el.innerHTML = i18n[currentLang][key];
+            });
+
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                const key = el.getAttribute('data-i18n-placeholder');
+                if (i18n[currentLang][key]) el.placeholder = i18n[currentLang][key];
+            });
+
+            document.querySelectorAll('[data-i18n-title]').forEach(el => {
+                const key = el.getAttribute('data-i18n-title');
+                if (i18n[currentLang][key]) el.title = i18n[currentLang][key];
+            });
+        }
+
+        let undoStack = []; 
+
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const icon = document.getElementById('themeIcon');
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                icon.className = 'fa-solid fa-moon';
+            } else {
+                html.classList.add('dark');
+                icon.className = 'fa-solid fa-sun';
+            }
+        }
+
+        // ================= 手機端 Tab 切換邏輯 =================
+        let currentTab = 1;
+        function switchTab(tabId) {
+            currentTab = tabId;
+            
+            // 處理欄位顯示/隱藏 (針對手機端)
+            const cols = ['col1', 'col2', 'col3'];
+            cols.forEach((colId, index) => {
+                const i = index + 1;
+                const el = document.getElementById(colId);
+                if (i === tabId) {
+                    el.classList.remove('hidden');
+                    el.classList.add('flex');
+                } else {
+                    el.classList.remove('flex');
+                    el.classList.add('hidden');
+                }
+            });
+
+            // 更新按鈕外觀設計
+            const themes = {
+                1: { activeBg: 'bg-blue-100 dark:bg-blue-900/50', activeText: 'text-blue-700 dark:text-blue-300', activeBorder: 'border-blue-300 dark:border-blue-700', badgeBg: 'bg-blue-600' },
+                2: { activeBg: 'bg-indigo-100 dark:bg-indigo-900/50', activeText: 'text-indigo-700 dark:text-indigo-300', activeBorder: 'border-indigo-300 dark:border-indigo-700', badgeBg: 'bg-indigo-600' },
+                3: { activeBg: 'bg-green-100 dark:bg-green-900/50', activeText: 'text-green-700 dark:text-green-300', activeBorder: 'border-green-300 dark:border-green-700', badgeBg: 'bg-green-600' }
+            };
+            
+            for (let i = 1; i <= 3; i++) {
+                const btn = document.getElementById(`tabBtn${i}`);
+                const badge = document.getElementById(`tabBadge${i}`);
+                
+                // 重設為非選中狀態
+                btn.className = `flex-1 min-w-[80px] py-2 px-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium border border-slate-300 dark:border-slate-600 text-sm flex items-center justify-center gap-1.5 transition-colors shadow-sm`;
+                badge.className = `bg-slate-400 dark:bg-slate-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]`;
+                
+                // 套用選中狀態
+                if (i === tabId) {
+                    const t = themes[i];
+                    btn.className = `flex-1 min-w-[80px] py-2 px-2 rounded-lg ${t.activeBg} ${t.activeText} font-bold border ${t.activeBorder} text-sm flex items-center justify-center gap-1.5 transition-colors shadow-sm`;
+                    badge.className = `${t.badgeBg} text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]`;
+                }
+            }
+        }
+
+        // ================= 編輯器核心與捲動 =================
+        function updateEditor(id) {
+            const textarea = document.getElementById(`code${id}`);
+            const gutter = document.getElementById(`gutter${id}`);
+            const lineCountLabel = document.getElementById(`lineCount${id}`);
+            
+            const lines = textarea.value.split('\n');
+            const count = lines.length;
+            
+            gutter.innerHTML = Array.from({length: count}, (_, i) => i + 1).join('\n');
+            lineCountLabel.innerHTML = `📄 ${count} <span class="lineLabel">${t('lineUnit')}</span>`;
+        }
+
+        function syncScroll(scrollableLayer, gutterId, backdropId) {
+            document.getElementById(gutterId).scrollTop = scrollableLayer.scrollTop;
+            const backdrop = document.getElementById(backdropId);
+            backdrop.scrollTop = scrollableLayer.scrollTop;
+            backdrop.scrollLeft = scrollableLayer.scrollLeft;
+        }
+
+        // ================= 排版與復原 (Undo) =================
+        function saveStateToUndo() {
+            const code1 = document.getElementById('code1').value;
+            undoStack.push(code1);
+            if (undoStack.length > 10) undoStack.shift(); 
+            document.getElementById('undoBtn').classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+
+        function undoLast() {
+            if (undoStack.length === 0) return;
+            const lastState = undoStack.pop();
+            document.getElementById('code1').value = lastState;
+            updateEditor('1');
+            
+            document.getElementById('code3').value = '';
+            document.getElementById('backdrop3').innerHTML = '';
+            updateEditor('3');
+
+            if (undoStack.length === 0) {
+                document.getElementById('undoBtn').classList.add('opacity-50', 'cursor-not-allowed');
+            }
+            showToast(t('msgUndo'));
+        }
+
+        function formatHTML(id) {
+            const el = document.getElementById(`code${id}`);
+            if (!el.value.trim()) return;
+            try {
+                if (id === '1') saveStateToUndo();
+                el.value = html_beautify(el.value, { 
+                    indent_size: 4, 
+                    preserve_newlines: true, 
+                    max_preserve_newlines: 1,
+                    wrap_line_length: 0 
+                });
+                updateEditor(id);
+                showToast(t('msgFormatSuccess'));
+            } catch(e) {
+                console.error(e);
+                showToast(t('msgFormatFail'), true);
+            }
+        }
+
+        // ================= 智能分析與替換核心 =================
+        function extractHTMLFromAI(text) {
+            const blockRegex = /```(?:html)?\s*([\s\S]*?)```/i;
+            const match = text.match(blockRegex);
+            if (match) return match[1].trim();
+            
+            const firstTagIndex = text.indexOf('<');
+            const lastTagIndex = text.lastIndexOf('>');
+            if (firstTagIndex !== -1 && lastTagIndex !== -1 && lastTagIndex > firstTagIndex) {
+                return text.substring(firstTagIndex, lastTagIndex + 1).trim();
+            }
+            
+            return text.trim();
+        }
+
+        function performSmartReplace() {
+            const origHTML = document.getElementById('code1').value;
+            const aiText = document.getElementById('code2').value;
+            const code3 = document.getElementById('code3');
+            const backdrop3 = document.getElementById('backdrop3');
+
+            if (!origHTML.trim()) { showToast(t('msgNeedOrig'), true); return; }
+
+            const escapeHTML = (str) => str.replace(/[&<>'"]/g, tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag]));
+
+            if (!aiText.trim()) { 
+                saveStateToUndo();
+                code3.value = origHTML;
+                updateEditor('3');
+                backdrop3.innerHTML = escapeHTML(origHTML);
+                showToast(t('msgDirectCopy'));
+                
+                // [智能體驗] 如果在手機上，自動跳轉到結果頁籤
+                if (window.innerWidth < 1024) switchTab(3);
+                return; 
+            }
+
+            saveStateToUndo();
+
+            const pureCode = extractHTMLFromAI(aiText);
+            let newHTML = origHTML;
+            let startIndex = -1;
+            let replaced = false;
+
+            if (pureCode.toLowerCase().startsWith('<style')) {
+                const headEnd = newHTML.indexOf('</head>');
+                if (headEnd !== -1) {
+                    startIndex = headEnd;
+                    newHTML = newHTML.substring(0, headEnd) + '\n' + pureCode + '\n' + newHTML.substring(headEnd);
+                    replaced = true;
+                    showToast(t('msgInjectCSS'));
+                }
+            } 
+            else if (pureCode.toLowerCase().startsWith('<script')) {
+                const bodyEnd = newHTML.lastIndexOf('</body>');
+                if (bodyEnd !== -1) {
+                    startIndex = bodyEnd;
+                    newHTML = newHTML.substring(0, bodyEnd) + '\n' + pureCode + '\n' + newHTML.substring(bodyEnd);
+                    replaced = true;
+                    showToast(t('msgInjectJS'));
+                }
+            }
+            
+            if (!replaced) {
+                const firstTagMatch = pureCode.match(/^<([a-z0-9]+)(\s[^>]*)?>/i);
+                if (firstTagMatch) {
+                    const tagName = firstTagMatch[1];
+                    const searchRegex = new RegExp(`<${tagName}[^>]*>[\\s\\S]*?<\\/${tagName}>`, 'i');
+                    const matchInOrig = origHTML.match(searchRegex);
+                    
+                    if (matchInOrig) {
+                        startIndex = matchInOrig.index;
+                        const replaceLength = matchInOrig[0].length;
+                        newHTML = origHTML.substring(0, startIndex) + pureCode + origHTML.substring(startIndex + replaceLength);
+                        replaced = true;
+                        showToast(t('msgReplaceSuccess'));
+                    }
+                }
+            }
+
+            if (!replaced) {
+                const bodyEndIndex = origHTML.lastIndexOf('</body>');
+                if (bodyEndIndex !== -1) {
+                    startIndex = bodyEndIndex;
+                    newHTML = origHTML.substring(0, bodyEndIndex) + '\n' + pureCode + '\n' + origHTML.substring(bodyEndIndex);
+                } else {
+                    startIndex = origHTML.length;
+                    newHTML = origHTML + '\n' + pureCode;
+                }
+                showToast(t('msgAppendEnd'));
+            }
+
+            code3.value = newHTML;
+            updateEditor('3');
+
+            const part1 = newHTML.substring(0, startIndex);
+            const part2 = pureCode;
+            const part3 = newHTML.substring(startIndex + pureCode.length);
+            
+            backdrop3.innerHTML = escapeHTML(part1) + '<mark id="scrollTarget">' + escapeHTML(part2) + '</mark>' + escapeHTML(part3);
+
+            // [智能體驗] 如果在手機上，替換成功後自動切換到結果頁籤！
+            if (window.innerWidth < 1024) switchTab(3);
+
+            setTimeout(() => {
+                const target = document.getElementById('scrollTarget');
+                if (target) {
+                    const container = document.getElementById('code3').parentElement;
+                    container.scrollTop = target.offsetTop - (container.clientHeight / 3);
+                }
+            }, 150); // 給予 Tab 切換動畫足夠時間
+        }
+
+        // ================= 搜尋功能 =================
+        let searchMatches = [];
+        let currentSearchIndex = -1;
+
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undoLast(); }
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') { e.preventDefault(); openSearch(); }
+        });
+
+        function openSearch() {
+            const overlay = document.getElementById('searchOverlay');
+            overlay.classList.remove('hidden'); overlay.classList.add('flex');
+            const input = document.getElementById('searchInput');
+            input.focus(); input.select();
+        }
+
+        function closeSearch() {
+            document.getElementById('searchOverlay').classList.remove('flex');
+            document.getElementById('searchOverlay').classList.add('hidden');
+            const backdrop1 = document.getElementById('backdrop1');
+            backdrop1.innerHTML = escapeHTMLForSearch(document.getElementById('code1').value);
+        }
+
+        const escapeHTMLForSearch = (str) => str.replace(/[&<>'"]/g, tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag]));
+
+        document.getElementById('searchInput').addEventListener('input', function(e) { performSearch(e.target.value); });
+        document.getElementById('searchInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); e.shiftKey ? findPrev() : findNext(); } 
+            else if (e.key === 'Escape') closeSearch();
+        });
+
+        function performSearch(query) {
+            const text = document.getElementById('code1').value;
+            searchMatches = []; currentSearchIndex = -1;
+            
+            if (!query) {
+                document.getElementById('searchMatchCount').innerText = '0/0';
+                document.getElementById('backdrop1').innerHTML = escapeHTMLForSearch(text);
+                return;
+            }
+
+            const lowerText = text.toLowerCase();
+            const lowerQuery = query.toLowerCase();
+            let startIndex = 0, index;
+
+            while ((index = lowerText.indexOf(lowerQuery, startIndex)) > -1) {
+                searchMatches.push(index);
+                startIndex = index + lowerQuery.length;
+            }
+
+            if (searchMatches.length > 0) {
+                currentSearchIndex = 0; highlightSearchMatch();
+            } else {
+                document.getElementById('searchMatchCount').innerText = '0/0';
+                document.getElementById('backdrop1').innerHTML = escapeHTMLForSearch(text);
+            }
+        }
+
+        function findNext() { if (searchMatches.length) { currentSearchIndex = (currentSearchIndex + 1) % searchMatches.length; highlightSearchMatch(); } }
+        function findPrev() { if (searchMatches.length) { currentSearchIndex = (currentSearchIndex - 1 + searchMatches.length) % searchMatches.length; highlightSearchMatch(); } }
+
+        function highlightSearchMatch() {
+            const text = document.getElementById('code1').value;
+            const query = document.getElementById('searchInput').value;
+            const matchIndex = searchMatches[currentSearchIndex];
+            
+            document.getElementById('searchMatchCount').innerText = `${currentSearchIndex + 1}/${searchMatches.length}`;
+            
+            const textarea = document.getElementById('code1');
+            const linesBefore = text.substring(0, matchIndex).split('\n').length;
+            const lineHeight = parseFloat(window.getComputedStyle(textarea).lineHeight) || 21;
+            textarea.parentElement.scrollTop = (linesBefore - 1) * lineHeight - (textarea.parentElement.clientHeight / 2);
+
+            const part1 = escapeHTMLForSearch(text.substring(0, matchIndex));
+            const part2 = `<mark class="search-match">${escapeHTMLForSearch(text.substring(matchIndex, matchIndex + query.length))}</mark>`;
+            const part3 = escapeHTMLForSearch(text.substring(matchIndex + query.length));
+            document.getElementById('backdrop1').innerHTML = part1 + part2 + part3;
+        }
+
+        // ================= 即時預覽 =================
+        function openPreview() {
+            let code = document.getElementById('code3').value;
+            if (!code) { 
+                code = document.getElementById('code1').value;
+                if (!code) {
+                    showToast(t('msgNoPreview'), true); return; 
+                }
+            }
+            
+            const modal = document.getElementById('previewModal');
+            const iframe = document.getElementById('previewFrame');
+            modal.classList.remove('hidden');
+            setPreviewMode('desktop');
+            
+            const doc = iframe.contentWindow.document;
+            doc.open(); doc.write(code); doc.close();
+        }
+
+        function closePreview() {
+            document.getElementById('previewModal').classList.add('hidden');
+            document.getElementById('previewFrame').src = 'about:blank';
+        }
+
+        function setPreviewMode(mode) {
+            const iframe = document.getElementById('previewFrame');
+            const mobileBtn = document.getElementById('btnMobilePreview');
+            const desktopBtn = document.getElementById('btnDesktopPreview');
+
+            if (mode === 'mobile') {
+                iframe.className = 'w-[375px] h-[812px] bg-white transition-all duration-300 mt-6 mb-6 rounded-[2rem] border-[14px] border-slate-800 dark:border-slate-950 shadow-2xl shrink-0';
+                
+                mobileBtn.classList.add('text-blue-600', 'bg-white', 'dark:text-blue-400', 'dark:bg-slate-800', 'shadow-sm');
+                mobileBtn.classList.remove('text-slate-600', 'dark:text-slate-300', 'hover:bg-white', 'dark:hover:bg-slate-800');
+                
+                desktopBtn.classList.remove('text-blue-600', 'bg-white', 'dark:text-blue-400', 'dark:bg-slate-800', 'shadow-sm');
+                desktopBtn.classList.add('text-slate-600', 'dark:text-slate-300', 'hover:bg-white', 'dark:hover:bg-slate-800');
+            } else {
+                iframe.className = 'w-full h-full bg-white transition-all duration-300 border-none shrink-0 shadow-lg';
+                
+                desktopBtn.classList.add('text-blue-600', 'bg-white', 'dark:text-blue-400', 'dark:bg-slate-800', 'shadow-sm');
+                desktopBtn.classList.remove('text-slate-600', 'dark:text-slate-300', 'hover:bg-white', 'dark:hover:bg-slate-800');
+                
+                mobileBtn.classList.remove('text-blue-600', 'bg-white', 'dark:text-blue-400', 'dark:bg-slate-800', 'shadow-sm');
+                mobileBtn.classList.add('text-slate-600', 'dark:text-slate-300', 'hover:bg-white', 'dark:hover:bg-slate-800');
+            }
+        }
+
+        // ================= 語法健康檢查 =================
+        function checkHTMLErrors() {
+            let code = document.getElementById('code3').value;
+            if (!code.trim()) {
+                code = document.getElementById('code1').value;
+                if (!code.trim()) {
+                    showToast(t('msgNoCheck'), true);
+                    return;
+                }
+            }
+
+            let warnings = [];
+            const voidElements = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr', '!doctype'];
+            const tagRegex = /<\/?([a-z0-9-]+)[^>]*>/gi;
+            let stack = [];
+            let match;
+
+            while ((match = tagRegex.exec(code)) !== null) {
+                const fullTag = match[0];
+                const tagName = match[1].toLowerCase();
+
+                if (fullTag.startsWith('</')) {
+                    if (stack.length === 0) {
+                        warnings.push(`${t('synExtraClose')} <b>&lt;/${tagName}&gt;</b>`);
+                    } else {
+                        const lastOpen = stack[stack.length - 1];
+                        if (lastOpen.tag === tagName) {
+                            stack.pop();
+                        } else {
+                            warnings.push(t('synMismatch').replace('{expected}', lastOpen.tag).replace('{actual}', tagName));
+                            stack.pop(); 
+                        }
+                    }
+                } else {
+                    if (!fullTag.endsWith('/>') && !voidElements.includes(tagName) && !tagName.startsWith('!--')) {
+                        stack.push({ tag: tagName, full: fullTag });
+                    }
+                }
+            }
+
+            if (stack.length > 0) {
+                stack.forEach(item => {
+                    warnings.push(`${t('synMissingClose')} <b>${item.full.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</b>`);
+                });
+            }
+
+            const modal = document.getElementById('syntaxModal');
+            const content = document.getElementById('syntaxReportContent');
+            
+            if (warnings.length === 0) {
+                content.innerHTML = `<div class="p-4 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-lg border border-green-300 dark:border-green-800 flex items-center gap-3"><i class="fa-solid fa-circle-check fa-2xl"></i> <div><h4 class="font-bold text-lg">${t('synPerfectTitle')}</h4><p>${t('synPerfectDesc')}</p></div></div>`;
+            } else {
+                let html = `<div class="p-4 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded-lg border border-red-300 dark:border-red-800 mb-4 flex items-center gap-3"><i class="fa-solid fa-triangle-exclamation fa-2xl"></i> <div><h4 class="font-bold text-lg">${t('synErrorTitle').replace('{n}', warnings.length)}</h4><p>${t('synErrorDesc')}</p></div></div><ul class="space-y-2">`;
+                warnings.forEach(w => {
+                    html += `<li class="p-3 bg-slate-100 dark:bg-slate-800 rounded border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-300">${w}</li>`;
+                });
+                html += `</ul>`;
+                content.innerHTML = html;
+            }
+            
+            modal.classList.remove('hidden');
+        }
+
+        function closeSyntaxModal() {
+            document.getElementById('syntaxModal').classList.add('hidden');
+        }
+
+        // ================= 檔案操作與流程控制 =================
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                saveStateToUndo(); 
+                document.getElementById('code1').value = e.target.result;
+                updateEditor('1');
+                document.getElementById('backdrop1').innerHTML = ''; 
+                showToast(`${t('msgFileLoaded')}: ${file.name}`);
+            };
+            reader.readAsText(file, "UTF-8");
+            event.target.value = '';
+        }
+
+        async function saveFile() {
+            const code = document.getElementById('code3').value;
+            if (!code) { showToast(t('msgNoSave'), true); return; }
+            try {
+                if (window.showSaveFilePicker) {
+                    const handle = await window.showSaveFilePicker({ suggestedName: 'merged_index.html', types: [{ description: 'HTML', accept: {'text/html': ['.html']} }] });
+                    const writable = await handle.createWritable();
+                    await writable.write(code); await writable.close();
+                    showToast(t('msgSaveSuccess'));
+                } else {
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(new Blob([code], { type: 'text/html;charset=utf-8' }));
+                    a.download = 'merged_index.html'; a.click(); URL.revokeObjectURL(a.href);
+                    showToast(t('msgDownload'));
+                }
+            } catch (err) { if (err.name !== 'AbortError') showToast(t('msgSaveFail'), true); }
+        }
+
+        function copyResult() {
+            const code = document.getElementById('code3').value;
+            if (!code) return;
+            const temp = document.createElement('textarea');
+            temp.value = code; document.body.appendChild(temp); temp.select(); document.execCommand('copy'); document.body.removeChild(temp);
+            showToast(t('msgCopy'));
+        }
+
+        async function shareResult() {
+            const code = document.getElementById('code3').value;
+            if (!code) return;
+            if (navigator.share) {
+                try { await navigator.share({ title: t('appTitle'), text: code }); showToast(t('msgShareSuccess')); } 
+                catch (err) { if (err.name !== 'AbortError') { copyResult(); showToast(t('msgAutoCopy')); } }
+            } else { copyResult(); showToast(t('msgAutoCopy')); }
+        }
+
+        function continueNextStep() {
+            const code = document.getElementById('code3').value;
+            if (!code) return;
+            saveStateToUndo(); 
+            document.getElementById('code1').value = code; updateEditor('1');
+            document.getElementById('code2').value = ''; document.getElementById('backdrop2').innerHTML = ''; updateEditor('2');
+            document.getElementById('code3').value = ''; document.getElementById('backdrop3').innerHTML = ''; updateEditor('3');
+            
+            // [智能體驗] 準備好下一階段時，如果在手機上，自動跳轉回 AI 頁籤等候用戶貼上新代碼！
+            if (window.innerWidth < 1024) switchTab(2);
+            
+            showToast(t('msgReadyNext'));
+        }
+
+        function visualReplaceMock() { showToast(t('msgVisualReady')); }
+
+        function showToast(message, isError = false) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast-animate px-4 py-3 rounded-lg shadow-xl border flex items-center gap-3 text-sm font-bold ${isError ? 'bg-red-500 text-white border-red-700' : 'bg-slate-800 text-white border-slate-900'}`;
+            toast.innerHTML = `<i class="${isError ? 'fa-solid fa-circle-exclamation' : 'fa-solid fa-circle-check'}"></i> <span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'all 0.3s ease'; setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+
+        window.onload = () => { 
+            applyLanguage();
+            updateEditor('1'); 
+            updateEditor('2'); 
+            updateEditor('3'); 
+        };
+    </script>
+</body>
+</html>
