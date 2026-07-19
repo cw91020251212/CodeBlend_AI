@@ -1,4 +1,4 @@
-const CACHE_NAME = 'codeblend-ai-v3';
+const CACHE_NAME = 'codeblend-ai-v4';
 const CORE_ASSETS = ['./', './index.html', './manifest.json', './icon.png'];
 
 self.addEventListener('install', (event) => {

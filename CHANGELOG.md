@@ -31,3 +31,7 @@
 ## Mobile browser viewport update
 
 - The app now follows the visible browser viewport using `visualViewport`, so the address bar and phone home gesture area no longer cover the bottom controls.
+
+## Mobile result navigation
+
+- Added a mobile-only Back button in column 3 that returns to the AI response column.

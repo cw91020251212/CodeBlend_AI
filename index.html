@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="icons/icon-192x192.png" type="image/png">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-    <title>AI HTML 融合助手 (終極完全體)</title>
+    <title>CodeBlend AI</title>
     
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -106,7 +106,7 @@
     <header class="bg-white dark:bg-slate-900 shadow-sm border-b border-slate-400 dark:border-slate-700 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center shrink-0 transition-colors duration-300 z-20">
         <div class="flex items-center gap-3">
             <div class="bg-blue-600 text-white p-2 rounded-lg shadow-sm border border-blue-800"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
-            <h1 class="text-lg sm:text-xl font-bold"><span data-i18n="appTitle">AI HTML 融合助手</span> <span data-i18n="appVersion" class="text-xs font-normal text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-300 dark:border-slate-600 ml-2 hidden sm:inline-block">終極版</span></h1>
+            <h1 class="text-lg sm:text-xl font-bold"><span data-i18n="appTitle">CodeBlend AI</span></h1>
         </div>
         <div class="flex items-center gap-3">
             <!-- 語言切換掣 -->
@@ -263,6 +263,9 @@
         <!-- 預設在手機端隱藏 (hidden)，桌面端一定顯示 (lg:flex) -->
         <div id="col3" class="hidden lg:flex flex-col flex-1 h-full bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-400 dark:border-slate-600 overflow-hidden border-t-2 border-t-green-600 transition-colors duration-300">
             <div class="bg-green-50 dark:bg-green-950 px-3 py-2 border-b border-slate-400 dark:border-slate-600 flex justify-between items-center shrink-0 flex-wrap gap-2">
+                <button onclick="switchTab(2)" data-i18n-title="titleBack" class="lg:hidden text-xs bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 border border-slate-400 dark:border-slate-500 px-2 py-1.5 rounded shadow-sm transition flex items-center gap-1" title="返回 AI 回覆">
+                    <i class="fa-solid fa-arrow-left"></i> <span data-i18n="btnBack">返回</span>
+                </button>
                 <h2 class="text-sm font-bold flex items-center gap-2 text-green-800 dark:text-green-300">
                     <span class="bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 rounded-full w-6 h-6 flex items-center justify-center text-xs border border-green-300 dark:border-green-600">3</span>
                     <span data-i18n="col3Title">最終代碼結果</span>
@@ -312,7 +315,7 @@
         const i18n = {
             zh: {
                 appTitle: "CodeBlend AI",
-                appVersion: "終極版",
+                appVersion: "",
                 langTitle: "Switch to English",
                 langLabel: "EN",
                 themeTitle: "切換日夜模式",
@@ -335,6 +338,8 @@
                 btnSmartReplace: "🧠 智能分析替換",
                 btnVisualReplace: "🖱️ 視覺化點擊",
                 btnCheck: "檢查",
+                btnBack: "返回",
+                titleBack: "返回 AI 回覆",
                 btnFix: "修正一個",
                 titleCheck: "檢查漏寫括號或結尾",
                 titleFix: "一次只修正一個已確認的 HTML 標籤問題",
@@ -397,8 +402,8 @@
                 synSourceOriginal: "檢查範圍：原始程式碼（第 1 欄）"
             },
             en: {
-                appTitle: "AI HTML Merger",
-                appVersion: "Ultimate",
+                appTitle: "CodeBlend AI",
+                appVersion: "",
                 langTitle: "切換至中文",
                 langLabel: "中",
                 themeTitle: "Toggle Dark Mode",
@@ -421,6 +426,8 @@
                 btnSmartReplace: "🧠 Smart Replace",
                 btnVisualReplace: "🖱️ Visual Click",
                 btnCheck: "Check",
+                btnBack: "Back",
+                titleBack: "Back to AI response",
                 btnFix: "Fix one",
                 titleCheck: "Check missing brackets/tags",
                 titleFix: "Fix one confirmed HTML tag problem at a time",
@@ -498,7 +505,7 @@
         }
 
         function applyLanguage() {
-            document.title = t('appTitle') + " (" + t('appVersion') + ")";
+            document.title = t('appTitle');
             document.getElementById('currentLangLabel').innerText = t('langLabel');
             
             document.querySelectorAll('[data-i18n]').forEach(el => {
