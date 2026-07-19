@@ -40,7 +40,9 @@
             --safe-area-inset-left: env(safe-area-inset-left);
             --safe-area-inset-right: env(safe-area-inset-right);
         }
+        html, body { height: 100%; }
         body { font-family: 'Inter', sans-serif; padding-bottom: var(--safe-area-inset-bottom); padding-top: var(--safe-area-inset-top); }
+        main { min-height: 0; }
         .code-font { font-family: 'Fira Code', monospace; }
         
         /* 強化版捲動條 */
@@ -59,9 +61,9 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        .editor-container { position: relative; display: flex; flex: 1; overflow: hidden; height: 100%; }
-        .gutter { width: 48px; text-align: right; padding: 12px 8px 12px 0; border-right: 1px solid; user-select: none; z-index: 10; height: 100%; overflow: hidden; }
-        .code-layer { flex: 1; position: relative; overflow: auto; height: 100%; }
+        .editor-container { position: relative; display: flex; flex: 1 1 0%; min-height: 0; overflow: hidden; height: 100%; }
+        .gutter { flex: 0 0 48px; width: 48px; text-align: right; padding: 12px 8px 12px 0; border-right: 1px solid; user-select: none; z-index: 10; height: 100%; overflow: hidden; white-space: pre; }
+        .code-layer { flex: 1 1 0%; min-width: 0; min-height: 0; position: relative; overflow: auto; height: 100%; }
         
         .highlight-backdrop {
             position: absolute; top: 0; left: 0; right: 0; min-height: 100%;
@@ -77,7 +79,11 @@
 
         .code-input {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            padding: 12px; background: transparent; z-index: 2; resize: none; outline: none; font-size: 14px; line-height: 1.5;
+            padding: 12px; background: transparent; z-index: 2; resize: none; outline: none; font-size: 14px; line-height: 1.5; color: inherit; -webkit-text-fill-color: currentColor;
+        }
+
+        @media (min-width: 1024px) {
+            main > [id^="col"] { min-width: 0; min-height: 0; }
         }
 
         /* 動畫 */
@@ -88,7 +94,7 @@
         .fade-in { animation: fadeIn 0.2s ease-out forwards; }
     </style>
 </head>
-    <body class="min-h-screen flex flex-col overflow-hidden bg-slate-100 text-slate-800 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-200">
+    <body class="h-screen flex flex-col overflow-hidden bg-slate-100 text-slate-800 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-200">
 
     <!-- 頂部導航 -->
     <header class="bg-white dark:bg-slate-900 shadow-sm border-b border-slate-400 dark:border-slate-700 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center shrink-0 transition-colors duration-300 z-20">
@@ -148,12 +154,12 @@
 
     <!-- 語法檢查報告視窗 (Modal) -->
     <div id="syntaxModal" class="hidden fixed inset-0 z-[110] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 fade-in">
-        <div class="bg-white dark:bg-slate-900 rounded-xl w-full max-w-lg flex flex-col shadow-2xl border border-slate-400 dark:border-slate-600 overflow-hidden">
+        <div class="bg-white dark:bg-slate-900 rounded-xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl border border-slate-400 dark:border-slate-600 overflow-hidden">
             <div class="p-3 border-b border-slate-300 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800 shrink-0">
                 <h3 class="font-bold flex items-center gap-2"><i class="fa-solid fa-stethoscope text-red-500"></i> <span data-i18n="syntaxModalTitle">代碼健康檢查報告</span></h3>
                 <button onclick="closeSyntaxModal()" class="text-slate-500 hover:text-red-600 transition"><i class="fa-solid fa-xmark fa-lg"></i></button>
             </div>
-            <div id="syntaxReportContent" class="p-4 max-h-[60vh] overflow-y-auto text-sm space-y-3">
+            <div id="syntaxReportContent" class="p-4 flex-1 min-h-0 overflow-y-auto text-sm space-y-3">
                 <!-- 報告內容會喺度生成 -->
             </div>
             <div class="p-3 bg-slate-50 dark:bg-slate-800 border-t border-slate-300 dark:border-slate-700 text-right">
@@ -259,6 +265,9 @@
                     <button onclick="checkHTMLErrors()" data-i18n-title="titleCheck" class="text-xs bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-red-500 dark:hover:text-red-400 border border-slate-400 dark:border-slate-500 px-2 py-1.5 sm:py-1 rounded shadow-sm transition" title="檢查漏寫括號或結尾">
                         <i class="fa-solid fa-stethoscope"></i> <span data-i18n="btnCheck" class="hidden sm:inline">檢查</span>
                     </button>
+                    <button onclick="fixHTMLErrors()" data-i18n-title="titleFix" class="text-xs bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-200 border border-amber-400 dark:border-amber-600 px-2 py-1.5 sm:py-1 rounded shadow-sm transition" title="逐個修正已確認的 HTML 標籤問題">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> <span data-i18n="btnFix" class="hidden sm:inline">修正一個</span>
+                    </button>
                     <button onclick="openPreview()" data-i18n-title="titlePreview" class="text-xs bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-400 dark:border-slate-500 px-2 py-1.5 sm:py-1 rounded shadow-sm transition" title="即時渲染網頁效果">
                         <i class="fa-solid fa-eye"></i> <span data-i18n="btnPreview" class="hidden sm:inline">預覽</span>
                     </button>
@@ -320,7 +329,14 @@
                 btnSmartReplace: "🧠 智能分析替換",
                 btnVisualReplace: "🖱️ 視覺化點擊",
                 btnCheck: "檢查",
+                btnFix: "修正一個",
                 titleCheck: "檢查漏寫括號或結尾",
+                titleFix: "一次只修正一個已確認的 HTML 標籤問題",
+                fixConfirm: "只會修正已確認的 HTML 標籤配對問題，不會改動 JavaScript、CSS 或內容文字。要修正一個嗎？",
+                msgNoFix: "暫時沒有可以安全自動修正的 HTML 問題。",
+                msgFixSuccess: "✅ 已修正 1 個 HTML 標籤問題，請再檢查一次。",
+                msgFixEncoding: "⚠️ 標籤已修正，但文字可能有編碼問題；儲存前請先確認沒有亂碼。",
+                synEncodingWarning: "⚠️ 偵測到疑似亂碼（例如 UTF-8 被當成其他編碼讀取）。語法修正不會自動改動文字，請先重新載入正確編碼的檔案。",
                 btnPreview: "預覽",
                 titlePreview: "即時渲染網頁效果",
                 btnCopy: "複製",
@@ -368,7 +384,11 @@
                 synErrorDesc: "AI 可能寫漏咗嘢，建議你檢查一下以下位置：",
                 synExtraClose: "❌ 多出咗未配對嘅結束標籤:",
                 synMismatch: "⚠️ 標籤錯配: 預期要閂 <b>&lt;/{expected}&gt;</b>，但見到 <b>&lt;/{actual}&gt;</b>",
-                synMissingClose: "🚨 漏咗結尾標籤:"
+                synMissingClose: "🚨 漏咗結尾標籤:",
+                synLine: "第",
+                synBracket: "❌ 尖括號未配對：< 或 > 數量不一致。",
+                synSourceResult: "檢查範圍：融合結果（第 3 欄）",
+                synSourceOriginal: "檢查範圍：原始程式碼（第 1 欄）"
             },
             en: {
                 appTitle: "AI HTML Merger",
@@ -395,7 +415,14 @@
                 btnSmartReplace: "🧠 Smart Replace",
                 btnVisualReplace: "🖱️ Visual Click",
                 btnCheck: "Check",
+                btnFix: "Fix one",
                 titleCheck: "Check missing brackets/tags",
+                titleFix: "Fix one confirmed HTML tag problem at a time",
+                fixConfirm: "Only a confirmed HTML tag-pairing problem will be fixed. JavaScript, CSS, and text content will not be changed. Fix one now?",
+                msgNoFix: "There are no HTML problems that can be safely fixed automatically.",
+                msgFixSuccess: "✅ Fixed one HTML tag problem. Please check again.",
+                msgFixEncoding: "⚠️ The tag was fixed, but the text may have an encoding problem. Check for garbled text before saving.",
+                synEncodingWarning: "⚠️ Possible garbled text detected. Syntax fixing will not change text; reload the file with the correct encoding first.",
                 btnPreview: "Preview",
                 titlePreview: "Live rendering of webpage",
                 btnCopy: "Copy",
@@ -443,7 +470,11 @@
                 synErrorDesc: "AI might have missed something, check these locations:",
                 synExtraClose: "❌ Extra unmatched closing tag:",
                 synMismatch: "⚠️ Tag mismatch: Expected to close <b>&lt;/{expected}&gt;</b>, found <b>&lt;/{actual}&gt;</b>",
-                synMissingClose: "🚨 Missing closing tag:"
+                synMissingClose: "🚨 Missing closing tag:",
+                synLine: "Line",
+                synBracket: "❌ Unbalanced angle brackets: the number of < and > characters differs.",
+                synSourceResult: "Checked: merged result (column 3)",
+                synSourceOriginal: "Checked: original code (column 1)"
             }
         };
 
@@ -841,65 +872,117 @@
         }
 
         // ================= 語法健康檢查 =================
-        function checkHTMLErrors() {
-            let code = document.getElementById('code3').value;
-            if (!code.trim()) {
-                code = document.getElementById('code1').value;
-                if (!code.trim()) {
-                    showToast(t('msgNoCheck'), true);
-                    return;
-                }
-            }
+        function getCheckTarget() {
+            const result = document.getElementById('code3');
+            if (result.value.trim()) return { element: result, source: 'result' };
+            return { element: document.getElementById('code1'), source: 'original' };
+        }
 
-            let warnings = [];
-            const voidElements = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr', '!doctype'];
-            const tagRegex = /<\/?([a-z0-9-]+)[^>]*>/gi;
-            let stack = [];
+        function detectEncodingWarning(code) {
+            const suspicious = code.match(/[ÃÂÐÑæçåä�][\u0080-\u00bf–—]|�/g) || [];
+            return suspicious.length >= 2 ? t('synEncodingWarning') : '';
+        }
+
+        function checkHTMLErrors() {
+            const target = getCheckTarget();
+            if (!target.element.value.trim()) {
+                showToast(t('msgNoCheck'), true);
+                return;
+            }
+            renderSyntaxReport(validateHTML(target.element.value), target.source, detectEncodingWarning(target.element.value));
+        }
+
+        function validateHTML(code) {
+            const issues = [];
+            const voidElements = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
+            const stack = [];
+            const tokenRegex = /<!--[\s\S]*?-->|<!doctype\b[^>]*>|<\/?[a-z][^>]*>/gi;
             let match;
 
-            while ((match = tagRegex.exec(code)) !== null) {
+            while ((match = tokenRegex.exec(code)) !== null) {
                 const fullTag = match[0];
-                const tagName = match[1].toLowerCase();
+                const start = match.index;
+                const end = start + fullTag.length;
+                const line = code.slice(0, start).split('\n').length;
+                if (fullTag.startsWith('<!--') || /^<!doctype\b/i.test(fullTag)) continue;
+                const closing = /^<\//.test(fullTag);
+                const parsed = fullTag.match(/^<\/?([a-z][\w:-]*)\b/i);
+                if (!parsed) continue;
+                const tag = parsed[1].toLowerCase();
 
-                if (fullTag.startsWith('</')) {
-                    if (stack.length === 0) {
-                        warnings.push(`${t('synExtraClose')} <b>&lt;/${tagName}&gt;</b>`);
-                    } else {
-                        const lastOpen = stack[stack.length - 1];
-                        if (lastOpen.tag === tagName) {
-                            stack.pop();
-                        } else {
-                            warnings.push(t('synMismatch').replace('{expected}', lastOpen.tag).replace('{actual}', tagName));
-                            stack.pop(); 
-                        }
+                if (closing) {
+                    if (!stack.length) {
+                        issues.push({ kind: 'extra-close', start, end, line, message: `${t('synExtraClose')} <b>&lt;/${tag}&gt;</b>` });
+                        continue;
                     }
-                } else {
-                    if (!fullTag.endsWith('/>') && !voidElements.includes(tagName) && !tagName.startsWith('!--')) {
-                        stack.push({ tag: tagName, full: fullTag });
+                    const openIndex = stack.map(item => item.tag).lastIndexOf(tag);
+                    if (openIndex === -1) {
+                        const expected = stack[stack.length - 1].tag;
+                        issues.push({ kind: 'extra-close', start, end, line, message: t('synMismatch').replace('{expected}', expected).replace('{actual}', tag) });
+                        continue;
                     }
+                    for (let i = stack.length - 1; i > openIndex; i--) {
+                        const missing = stack[i];
+                        issues.push({ kind: 'missing-before', insertAt: start, tag: missing.tag, line: missing.line, message: `${t('synMissingClose')} <b>&lt;/${missing.tag}&gt;</b>` });
+                    }
+                    stack.length = openIndex;
+                    continue;
                 }
+
+                if (!/\/\s*>$/.test(fullTag) && !voidElements.has(tag)) stack.push({ tag, line });
             }
 
-            if (stack.length > 0) {
-                stack.forEach(item => {
-                    warnings.push(`${t('synMissingClose')} <b>${item.full.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</b>`);
-                });
+            for (let i = stack.length - 1; i >= 0; i--) {
+                const item = stack[i];
+                issues.push({ kind: 'missing-end', insertAt: code.length, tag: item.tag, line: item.line, message: `${t('synMissingClose')} <b>&lt;/${item.tag}&gt;</b>` });
             }
+            if ((code.match(/</g) || []).length !== (code.match(/>/g) || []).length) {
+                issues.push({ kind: 'bracket', line: code.split('\n').length, message: t('synBracket') });
+            }
+            return issues;
+        }
 
+        function fixHTMLErrors() {
+            const target = getCheckTarget();
+            const code = target.element.value;
+            if (!code.trim()) {
+                showToast(t('msgNoFix'), true);
+                return;
+            }
+            const issue = validateHTML(code).find(item => item.kind === 'missing-before' || item.kind === 'missing-end' || item.kind === 'extra-close');
+            if (!issue) {
+                showToast(t('msgNoFix'));
+                return;
+            }
+            if (!window.confirm(t('fixConfirm'))) return;
+
+            let fixed;
+            if (issue.kind === 'extra-close') {
+                fixed = code.slice(0, issue.start) + code.slice(issue.end);
+            } else {
+                const insertion = `</${issue.tag}>`;
+                fixed = code.slice(0, issue.insertAt) + insertion + code.slice(issue.insertAt);
+            }
+            target.element.value = fixed;
+            updateEditor(target.element.id.slice(-1));
+            const backdrop = document.getElementById(`backdrop${target.element.id.slice(-1)}`);
+            if (backdrop) backdrop.innerHTML = escapeHTMLForSearch(fixed);
+            showToast(t('msgFixSuccess'));
+            renderSyntaxReport(validateHTML(fixed), target.source, detectEncodingWarning(fixed));
+        }
+
+        function renderSyntaxReport(issues, source, encodingWarning = '') {
             const modal = document.getElementById('syntaxModal');
             const content = document.getElementById('syntaxReportContent');
-            
-            if (warnings.length === 0) {
-                content.innerHTML = `<div class="p-4 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-lg border border-green-300 dark:border-green-800 flex items-center gap-3"><i class="fa-solid fa-circle-check fa-2xl"></i> <div><h4 class="font-bold text-lg">${t('synPerfectTitle')}</h4><p>${t('synPerfectDesc')}</p></div></div>`;
+            const sourceLabel = source === 'result' ? t('synSourceResult') : t('synSourceOriginal');
+            const encodingNote = encodingWarning ? `<div class="p-3 mb-3 bg-amber-100 dark:bg-amber-900/30 text-amber-900 dark:text-amber-200 rounded-lg border border-amber-300 dark:border-amber-700">${encodingWarning}</div>` : '';
+            if (!issues.length) {
+                content.innerHTML = encodingNote + `<div class="p-4 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-lg border border-green-300 dark:border-green-800 flex items-center gap-3"><i class="fa-solid fa-circle-check fa-2xl"></i><div><h4 class="font-bold text-lg">${t('synPerfectTitle')}</h4><p>${t('synPerfectDesc')}</p><p class="text-xs opacity-75 mt-1">${sourceLabel}</p></div></div>`;
             } else {
-                let html = `<div class="p-4 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded-lg border border-red-300 dark:border-red-800 mb-4 flex items-center gap-3"><i class="fa-solid fa-triangle-exclamation fa-2xl"></i> <div><h4 class="font-bold text-lg">${t('synErrorTitle').replace('{n}', warnings.length)}</h4><p>${t('synErrorDesc')}</p></div></div><ul class="space-y-2">`;
-                warnings.forEach(w => {
-                    html += `<li class="p-3 bg-slate-100 dark:bg-slate-800 rounded border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-300">${w}</li>`;
-                });
-                html += `</ul>`;
-                content.innerHTML = html;
+                let html = encodingNote + `<div class="p-4 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded-lg border border-red-300 dark:border-red-800 mb-4 flex items-center gap-3"><i class="fa-solid fa-triangle-exclamation fa-2xl"></i><div><h4 class="font-bold text-lg">${t('synErrorTitle').replace('{n}', issues.length)}</h4><p>${t('synErrorDesc')}</p><p class="text-xs opacity-75 mt-1">${sourceLabel}</p></div></div><ul class="space-y-2">`;
+                issues.forEach(issue => { html += `<li class="p-3 bg-slate-100 dark:bg-slate-800 rounded border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-300"><span class="font-mono text-xs text-blue-600 dark:text-blue-400">${t('synLine')} ${issue.line || '?'}</span><br>${issue.message}</li>`; });
+                content.innerHTML = html + '</ul>';
             }
-            
             modal.classList.remove('hidden');
         }
 
@@ -908,18 +991,34 @@
         }
 
         // ================= 檔案操作與流程控制 =================
+        function decodeUploadedFile(buffer) {
+            const bytes = new Uint8Array(buffer);
+            if (bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf) return { text: new TextDecoder('utf-8').decode(bytes.slice(3)), encoding: 'UTF-8 BOM', warning: false };
+            if (bytes[0] === 0xff && bytes[1] === 0xfe) return { text: new TextDecoder('utf-16le').decode(bytes.slice(2)), encoding: 'UTF-16 LE', warning: false };
+            if (bytes[0] === 0xfe && bytes[1] === 0xff) return { text: new TextDecoder('utf-16be').decode(bytes.slice(2)), encoding: 'UTF-16 BE', warning: false };
+            try {
+                return { text: new TextDecoder('utf-8', { fatal: true }).decode(bytes), encoding: 'UTF-8', warning: false };
+            } catch (error) {
+                for (const encoding of ['big5', 'gb18030']) {
+                    try { return { text: new TextDecoder(encoding).decode(bytes), encoding: encoding.toUpperCase(), warning: true }; } catch (ignored) {}
+                }
+                return { text: new TextDecoder().decode(bytes), encoding: 'UTF-8', warning: true };
+            }
+        }
+
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
             reader.onload = function(e) {
-                saveStateToUndo(); 
-                document.getElementById('code1').value = e.target.result;
+                saveStateToUndo();
+                const decoded = decodeUploadedFile(e.target.result);
+                document.getElementById('code1').value = decoded.text;
                 updateEditor('1');
-                document.getElementById('backdrop1').innerHTML = ''; 
-                showToast(`${t('msgFileLoaded')}: ${file.name}`);
+                document.getElementById('backdrop1').innerHTML = escapeHTMLForSearch(decoded.text);
+                showToast(`${t('msgFileLoaded')}: ${file.name} (${decoded.encoding})${decoded.warning ? ' — ' + t('msgFixEncoding') : ''}`, Boolean(decoded.warning));
             };
-            reader.readAsText(file, "UTF-8");
+            reader.readAsArrayBuffer(file);
             event.target.value = '';
         }
 
