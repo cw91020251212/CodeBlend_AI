@@ -1,0 +1,19 @@
+{
+  "name": "CodeBlend AI",
+  "short_name": "CodeBlend",
+  "description": "智能 HTML 代碼融合工具：從 AI 回覆提取 HTML/CSS/JS，並注入/替換到原始檔案。",
+  "lang": "zh-HK",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "./icon.png",
+      "sizes": "1920x1920",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

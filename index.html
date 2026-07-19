@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- PWA (像手機 App 一樣安裝到主畫面) -->
+    <meta name="theme-color" content="#2563eb">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icon.png" type="image/png">
+    <link rel="apple-touch-icon" href="icon.png">
     <title>AI HTML 融合助手 (終極完全體)</title>
     
     <!-- 引入 Tailwind CSS -->
@@ -976,6 +982,11 @@
             updateEditor('1'); 
             updateEditor('2'); 
             updateEditor('3'); 
+
+            // PWA: 註冊 Service Worker（用於安裝/快取）
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js').catch(() => {});
+            }
         };
     </script>
 </body>
