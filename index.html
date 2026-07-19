@@ -909,7 +909,7 @@
             const issues = [];
             const voidElements = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
             const stack = [];
-            const tokenRegex = /<!--[\s\S]*?-->|<!doctype\b[^>]*>|<\/?[a-z][^>]*>/gi;
+            const tokenRegex = /<!--[\s\S]*?-->|<!doctype\b[^>]*>|<(script|style)\b[^>]*>[\s\S]*?<\/\1>|<([a-z][\w:-]*)(?:\s+(?:"[^"]*"|'[^']*'|[^>'"]+)*?)?>|<\/([a-z][\w:-]*)>/gi;
             let match;
 
             while ((match = tokenRegex.exec(code)) !== null) {
@@ -917,13 +917,12 @@
                 const start = match.index;
                 const end = start + fullTag.length;
                 const line = code.slice(0, start).split('\n').length;
-                if (fullTag.startsWith('<!--') || /^<!doctype\b/i.test(fullTag)) continue;
-                const closing = /^<\//.test(fullTag);
-                const parsed = fullTag.match(/^<\/?([a-z][\w:-]*)\b/i);
-                if (!parsed) continue;
-                const tag = parsed[1].toLowerCase();
 
-                if (closing) {
+                if (match[1]) continue;
+                if (fullTag.startsWith('<!--') || /^<!doctype\b/i.test(fullTag)) continue;
+
+                if (match[3]) {
+                    const tag = match[3].toLowerCase();
                     if (!stack.length) {
                         issues.push({ kind: 'extra-close', start, end, line, message: `${t('synExtraClose')} <b>&lt;/${tag}&gt;</b>` });
                         continue;
@@ -942,15 +941,17 @@
                     continue;
                 }
 
-                if (!/\/\s*>$/.test(fullTag) && !voidElements.has(tag)) stack.push({ tag, line });
+                if (match[2]) {
+                    const tag = match[2].toLowerCase();
+                    if (!/\/\s*>$/.test(fullTag) && !voidElements.has(tag)) {
+                        stack.push({ tag, line });
+                    }
+                }
             }
 
             for (let i = stack.length - 1; i >= 0; i--) {
                 const item = stack[i];
                 issues.push({ kind: 'missing-end', insertAt: code.length, tag: item.tag, line: item.line, message: `${t('synMissingClose')} <b>&lt;/${item.tag}&gt;</b>` });
-            }
-            if ((code.match(/</g) || []).length !== (code.match(/>/g) || []).length) {
-                issues.push({ kind: 'bracket', line: code.split('\n').length, message: t('synBracket') });
             }
             return issues;
         }
