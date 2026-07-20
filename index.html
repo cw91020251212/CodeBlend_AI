@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="icons/icon-192x192.png" type="image/png">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-    <title>CodeBlend AI</title>
+    <title>AI HTML 融合助手 (終極完全體)</title>
     
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -40,9 +40,9 @@
             --safe-area-inset-left: env(safe-area-inset-left);
             --safe-area-inset-right: env(safe-area-inset-right);
         }
-        html { height: 100%; }
-        body.app-body { height: var(--app-height, 100vh); min-height: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; padding-bottom: var(--safe-area-inset-bottom); padding-top: var(--safe-area-inset-top); }
-        main { min-height: 0; height: 0; }
+        html, body { height: 100%; }
+        body { font-family: 'Inter', sans-serif; padding-bottom: var(--safe-area-inset-bottom); padding-top: var(--safe-area-inset-top); }
+        main { min-height: 0; }
         .code-font { font-family: 'Fira Code', monospace; }
         
         /* 強化版捲動條 */
@@ -57,26 +57,19 @@
         .dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
         /* 編輯器核心設定 */
-        textarea { white-space: pre !important; overflow-wrap: normal !important; tab-size: 4; }
+        textarea { white-space: pre !important; overflow-wrap: normal !important; overflow-x: auto; tab-size: 4; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        .editor-container { position: relative; display: flex; flex: 1 1 0%; min-width: 0; min-height: 0; overflow: hidden; height: 0; }
+        .editor-container { position: relative; display: flex; flex: 1 1 0%; min-height: 0; overflow: hidden; height: 100%; }
+        .gutter { flex: 0 0 48px; width: 48px; text-align: right; padding: 12px 8px 12px 0; border-right: 1px solid; user-select: none; z-index: 10; height: 100%; overflow: hidden; white-space: pre; }
+        .code-layer { flex: 1 1 0%; min-width: 0; min-height: 0; position: relative; overflow: auto; height: 100%; }
         
-        /* Gutter (行號) 需要隱藏捲動條但內容可以捲動 (被 JS 同步) */
-        .gutter { flex: 0 0 48px; width: 48px; min-height: 0; box-sizing: border-box; text-align: right; padding: 12px 8px 12px 0; border-right: 1px solid; user-select: none; z-index: 10; height: 100%; overflow: hidden; white-space: pre; }
-        
-        /* Code Layer 不再自己捲動，改為 relative 容器 */
-        .code-layer { flex: 1 1 0%; min-width: 0; min-height: 0; position: relative; height: 100%; }
-        
-        /* 高亮層需要與 Textarea 尺寸完全一致，並強制隱藏捲動條 (由 JS 同步捲動) */
         .highlight-backdrop {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            position: absolute; top: 0; left: 0; right: 0; min-height: 100%;
             padding: 12px; pointer-events: none; color: transparent; z-index: 1;
-            white-space: pre; font-size: 14px; line-height: 1.5; box-sizing: border-box;
-            overflow: hidden; tab-size: 4;
+            white-space: pre; font-size: 14px; line-height: 1.5;
         }
-        
         /* 黃色螢光筆高亮 */
         .highlight-backdrop mark { background-color: rgba(253, 224, 71, 0.7); color: transparent; border-radius: 2px; box-shadow: 0 0 0 1px rgba(234, 179, 8, 0.5); }
         .dark .highlight-backdrop mark { background-color: rgba(234, 179, 8, 0.5); box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.6); }
@@ -84,21 +77,13 @@
         /* 搜尋匹配高亮 */
         .highlight-backdrop .search-match { background-color: rgba(59, 130, 246, 0.5); border-radius: 2px; }
 
-        /* Textarea 為真正的捲動主體 */
         .code-input {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; min-height: 0; box-sizing: border-box;
-            padding: 12px; margin: 0; border: 0; background: transparent; z-index: 2; resize: none; outline: none; font-size: 14px; line-height: 1.5; color: inherit; -webkit-text-fill-color: currentColor;
-            overflow: auto; /* 允許 Textarea 自己捲動 */
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            padding: 12px; background: transparent; z-index: 2; resize: none; outline: none; font-size: 14px; line-height: 1.5; color: inherit; -webkit-text-fill-color: currentColor;
         }
 
         @media (min-width: 1024px) {
-            main > [id^="col"] { min-width: 0; min-height: 0; height: 100%; }
-        }
-
-        @media (max-width: 1023px) {
-            main { height: 0; }
-            main > [id^="col"] { min-width: 0; min-height: 0; height: 100%; }
-            .editor-container { height: 0; }
+            main > [id^="col"] { min-width: 0; min-height: 0; }
         }
 
         /* 動畫 */
@@ -109,15 +94,20 @@
         .fade-in { animation: fadeIn 0.2s ease-out forwards; }
     </style>
 </head>
-    <body class="app-body flex flex-col overflow-hidden bg-slate-100 text-slate-800 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-200">
+    <body class="h-screen flex flex-col overflow-hidden bg-slate-100 text-slate-800 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-200">
 
     <!-- 頂部導航 -->
     <header class="bg-white dark:bg-slate-900 shadow-sm border-b border-slate-400 dark:border-slate-700 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center shrink-0 transition-colors duration-300 z-20">
         <div class="flex items-center gap-3">
             <div class="bg-blue-600 text-white p-2 rounded-lg shadow-sm border border-blue-800"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
-            <h1 class="text-lg sm:text-xl font-bold"><span data-i18n="appTitle">CodeBlend AI</span></h1>
+            <h1 class="text-lg sm:text-xl font-bold"><span data-i18n="appTitle">AI HTML 融合助手</span> <span data-i18n="appVersion" class="text-xs font-normal text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-300 dark:border-slate-600 ml-2 hidden sm:inline-block">終極版</span></h1>
         </div>
         <div class="flex items-center gap-3">
+            <!-- 清空整個程式掣 -->
+            <button onclick="resetWholeProgram()" class="px-3 h-9 rounded-full bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300 font-semibold text-sm hover:bg-red-200 dark:hover:bg-red-900/60 transition border border-red-400 dark:border-red-700 shadow-sm flex items-center justify-center gap-2" data-i18n-title="titleResetProgram" title="清空整個程式，重新開始">
+                <i class="fa-solid fa-trash-can"></i> <span data-i18n="btnResetProgram" class="hidden sm:inline">清空重來</span>
+            </button>
+
             <!-- 語言切換掣 -->
             <button onclick="toggleLanguage()" class="px-3 h-9 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-sm hover:bg-slate-300 dark:hover:bg-slate-700 transition border border-slate-400 dark:border-slate-600 shadow-sm flex items-center justify-center gap-2" data-i18n-title="langTitle" title="Switch Language / 切換語言">
                 <i class="fa-solid fa-globe"></i> <span id="currentLangLabel">EN</span>
@@ -132,7 +122,7 @@
     <!-- 彈出通知容器 -->
     <div id="toastContainer" class="fixed top-4 right-1/2 translate-x-1/2 z-[150] flex flex-col gap-2 pointer-events-none"></div>
 
-    <!-- 手機端分頁導航 -->
+    <!-- 手機端分頁導航 (只有 lg 螢幕以下顯示) -->
     <div class="flex lg:hidden bg-white dark:bg-slate-900 border-b border-slate-300 dark:border-slate-700 p-2 gap-2 overflow-x-auto shrink-0 shadow-sm z-10 pb-[calc(0.5rem+var(--safe-area-inset-bottom))]">
         <button onclick="switchTab(1)" id="tabBtn1" class="flex-1 min-w-[80px] py-2 px-2 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-bold border border-blue-300 dark:border-blue-700 text-sm flex items-center justify-center gap-1.5 transition-colors shadow-sm">
             <span id="tabBadge1" class="bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]">1</span> <span data-i18n="tab1">原始</span>
@@ -151,6 +141,7 @@
             <div class="p-2 sm:p-3 border-b border-slate-300 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800 shrink-0 gap-2">
                 <h3 class="font-bold flex items-center gap-2"><i class="fa-solid fa-eye text-blue-600"></i> <span data-i18n="previewModalTitle" class="hidden sm:inline">網頁即時預覽</span></h3>
                 <div class="flex items-center gap-2">
+                    <!-- 設備切換掣 -->
                     <div class="flex bg-slate-200 dark:bg-slate-700 p-1 rounded-lg gap-1 border border-slate-300 dark:border-slate-600 shadow-inner">
                         <button id="btnMobilePreview" onclick="setPreviewMode('mobile')" class="px-2 sm:px-3 py-1 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:bg-white dark:hover:bg-slate-800 transition flex items-center gap-1"><i class="fa-solid fa-mobile-screen"></i> <span data-i18n="btnMobile" class="hidden sm:inline">手機</span></button>
                         <button id="btnDesktopPreview" onclick="setPreviewMode('desktop')" class="px-2 sm:px-3 py-1 rounded-md text-sm font-medium text-blue-600 bg-white dark:text-blue-400 dark:bg-slate-800 shadow-sm transition flex items-center gap-1"><i class="fa-solid fa-desktop"></i> <span data-i18n="btnDesktop" class="hidden sm:inline">電腦</span></button>
@@ -159,6 +150,7 @@
                     <button onclick="closePreview()" class="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 font-bold px-2 sm:px-3 py-1 border border-red-300 dark:border-red-800 rounded transition shadow-sm flex items-center gap-1"><i class="fa-solid fa-xmark"></i> <span data-i18n="btnClose" class="hidden sm:inline">關閉</span></button>
                 </div>
             </div>
+            <!-- 預覽容器 -->
             <div class="flex-1 bg-slate-300/30 dark:bg-black/40 overflow-y-auto flex flex-col items-center">
                 <iframe id="previewFrame" class="w-full h-full bg-white transition-all duration-300 border-none shrink-0 shadow-lg"></iframe>
             </div>
@@ -173,6 +165,7 @@
                 <button onclick="closeSyntaxModal()" class="text-slate-500 hover:text-red-600 transition"><i class="fa-solid fa-xmark fa-lg"></i></button>
             </div>
             <div id="syntaxReportContent" class="p-4 flex-1 min-h-0 overflow-y-auto text-sm space-y-3">
+                <!-- 報告內容會喺度生成 -->
             </div>
             <div class="p-3 bg-slate-50 dark:bg-slate-800 border-t border-slate-300 dark:border-slate-700 text-right">
                 <button onclick="closeSyntaxModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition shadow-sm border border-blue-800"><span data-i18n="btnGotIt">我知道了</span></button>
@@ -180,10 +173,11 @@
         </div>
     </div>
 
-    <!-- 主要工作區 -->
+    <!-- 主要工作區 (強制 overflow-hidden，讓內部編輯器自己捲動) -->
     <main class="flex-1 flex flex-col lg:flex-row p-3 sm:p-4 gap-4 overflow-hidden relative">
         
         <!-- ================= 第 1 欄：原始 HTML ================= -->
+        <!-- 預設在手機端顯示 (flex)，桌面端一定顯示 (lg:flex) -->
         <div id="col1" class="flex lg:flex flex-col flex-1 h-full bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-400 dark:border-slate-600 overflow-hidden transition-colors duration-300">
             <div class="bg-slate-50 dark:bg-slate-800 px-3 py-2 border-b border-slate-400 dark:border-slate-600 flex justify-between items-center shrink-0 flex-wrap gap-2">
                 <h2 class="text-sm font-bold flex items-center gap-2">
@@ -191,16 +185,20 @@
                     <span data-i18n="col1Title">你的原始檔案</span>
                 </h2>
                 <div class="flex items-center flex-wrap gap-1 sm:gap-2">
+                    <!-- 復原按鈕 -->
                     <button id="undoBtn" onclick="undoLast()" data-i18n-title="titleUndo" class="text-xs bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-400 dark:border-slate-500 px-2 py-1.5 sm:py-1 rounded shadow-sm opacity-50 cursor-not-allowed transition hover:bg-slate-100 dark:hover:bg-slate-600" title="復原上一次替換 (Ctrl+Z)">
                         <i class="fa-solid fa-rotate-left"></i> <span data-i18n="btnUndo" class="hidden sm:inline">復原</span>
                     </button>
+                    <!-- 自動排版按鈕 -->
                     <button onclick="formatHTML('1')" data-i18n-title="titleFormat" class="text-xs bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-400 border border-slate-400 dark:border-slate-500 px-2 py-1.5 sm:py-1 rounded shadow-sm transition" title="整理代碼縮排">
                         <i class="fa-solid fa-broom"></i> <span data-i18n="btnFormat" class="hidden sm:inline">排版</span>
                     </button>
+                    <!-- 載入檔案按鈕 -->
                     <button onclick="document.getElementById('fileUpload').click()" class="text-xs bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-400 dark:border-slate-500 px-2 py-1.5 sm:py-1 rounded shadow-sm transition">
                         <i class="fa-solid fa-folder-open"></i> <span data-i18n="btnLoad" class="hidden sm:inline">載入</span>
                     </button>
                     <input type="file" id="fileUpload" class="hidden" accept=".html,.htm,.txt" onchange="handleFileUpload(event)">
+                    <!-- 搜尋按鈕 -->
                     <button onclick="openSearch()" data-i18n-title="titleSearch" class="text-xs bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-400 dark:border-slate-500 px-2 py-1.5 sm:py-1 rounded shadow-sm transition" title="搜尋 (Ctrl+F)">
                         <i class="fa-solid fa-magnifying-glass"></i> <span data-i18n="btnSearch" class="hidden lg:inline">搜尋</span>
                     </button>
@@ -208,6 +206,7 @@
                 </div>
             </div>
             
+            <!-- 搜尋浮動視窗 -->
             <div id="searchOverlay" class="hidden absolute top-14 left-1/2 -translate-x-1/2 lg:left-auto lg:right-4 lg:translate-x-0 bg-white dark:bg-slate-800 shadow-xl border border-slate-500 dark:border-slate-400 rounded-lg p-2 items-center gap-2 z-20">
                 <i class="fa-solid fa-magnifying-glass text-slate-500 dark:text-slate-400"></i>
                 <input type="text" id="searchInput" data-i18n-placeholder="searchPlaceholder" placeholder="尋找代碼 (Ctrl+F)..." class="px-2 py-1 text-sm outline-none w-40 sm:w-48 bg-slate-50 dark:bg-slate-900 rounded border border-slate-400 dark:border-slate-600 focus:border-blue-500 dark:text-white">
@@ -219,38 +218,42 @@
                 </div>
             </div>
 
-            <!-- 編輯器 1 核心：將 onscroll 綁定在 textarea 上 -->
+            <!-- 編輯器 1 核心 -->
             <div class="editor-container bg-white dark:bg-slate-950 flex-1">
                 <div id="gutter1" class="gutter code-font text-xs bg-slate-50 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500">1</div>
-                <div class="code-layer">
+                <div class="code-layer" onscroll="syncScroll(this, 'gutter1', 'backdrop1')">
                     <div id="backdrop1" class="highlight-backdrop code-font"></div>
-                    <textarea id="code1" wrap="off" class="code-input code-font text-slate-800 dark:text-slate-300 h-full w-full" data-i18n-placeholder="placeholder1" placeholder="按右上角載入檔案，或貼上原本的 HTML 檔案代碼..." oninput="updateEditor('1')" onscroll="syncScroll(this, 'gutter1', 'backdrop1')" spellcheck="false"></textarea>
+                    <textarea id="code1" class="code-input code-font no-scrollbar text-slate-800 dark:text-slate-300 h-full w-full" data-i18n-placeholder="placeholder1" placeholder="按右上角載入檔案，或貼上原本的 HTML 檔案代碼..." oninput="updateEditor('1')" spellcheck="false"></textarea>
                 </div>
             </div>
         </div>
 
         <!-- ================= 第 2 欄：AI 提供的代碼 ================= -->
+        <!-- 預設在手機端隱藏 (hidden)，桌面端一定顯示 (lg:flex) -->
         <div id="col2" class="hidden lg:flex flex-col flex-1 h-full bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-400 dark:border-slate-600 overflow-hidden border-t-2 border-t-indigo-600 transition-colors duration-300">
             <div class="bg-indigo-50 dark:bg-indigo-950 px-3 py-2 border-b border-slate-400 dark:border-slate-600 flex justify-between items-center shrink-0">
                 <h2 class="text-sm font-bold flex items-center gap-2 text-indigo-800 dark:text-indigo-300">
                     <span class="bg-indigo-200 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-200 rounded-full w-6 h-6 flex items-center justify-center text-xs border border-indigo-300 dark:border-indigo-600">2</span>
-                    <span data-i18n="col2Title">AI 回覆 (連中文字貼上)</span>
+                    <span data-i18n="col2Title">AI 回覆（貼上新一段）</span>
                 </h2>
-                <span id="lineCount2" class="hidden lg:inline-block text-xs font-mono bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-400 dark:border-slate-600 shadow-sm text-indigo-700 dark:text-indigo-400">📄 0 <span class="lineLabel">行</span></span>
+                <div class="flex items-center gap-1 sm:gap-2">
+                    <button onclick="clearAIInput()" data-i18n-title="titleClearAI" class="text-xs bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-red-600 dark:hover:text-red-400 border border-slate-400 dark:border-slate-500 px-2 py-1.5 sm:py-1 rounded shadow-sm transition" title="清除上一段 AI 回覆">
+                        <i class="fa-solid fa-eraser"></i> <span data-i18n="btnClearAI" class="hidden sm:inline">清除舊回覆</span>
+                    </button>
+                    <span id="lineCount2" class="hidden lg:inline-block text-xs font-mono bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-400 dark:border-slate-600 shadow-sm text-indigo-700 dark:text-indigo-400">📄 0 <span class="lineLabel">行</span></span>
+                </div>
             </div>
             
             <div class="editor-container bg-indigo-50/30 dark:bg-indigo-950/20 flex-1">
                 <div id="gutter2" class="gutter code-font text-xs bg-indigo-50/50 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500">1</div>
-                <div class="code-layer">
+                <div class="code-layer" onscroll="syncScroll(this, 'gutter2', 'backdrop2')">
                     <div id="backdrop2" class="highlight-backdrop code-font"></div>
-                    <textarea id="code2" wrap="off" class="code-input code-font text-slate-800 dark:text-slate-300 h-full w-full" data-i18n-placeholder="placeholder2" placeholder="直接將 ChatGPT/Claude 的整段回答(包含解釋)貼喺度！&#10;系統識得自動過濾中文，抽出純代碼。" oninput="updateEditor('2')" onscroll="syncScroll(this, 'gutter2', 'backdrop2')" spellcheck="false"></textarea>
+                    <textarea id="code2" class="code-input code-font no-scrollbar text-slate-800 dark:text-slate-300 h-full w-full" data-i18n-placeholder="placeholder2" placeholder="直接將 ChatGPT/Claude 的整段回答(包含解釋)貼喺度！&#10;系統識得自動過濾中文，抽出純代碼。" oninput="updateEditor('2')" spellcheck="false"></textarea>
                 </div>
             </div>
 
+            <!-- 替換操作按鈕 -->
             <div class="bg-white dark:bg-slate-800 p-3 sm:p-4 pb-[calc(1rem+var(--safe-area-inset-bottom))] sm:pb-4 border-t border-slate-400 dark:border-slate-600 grid grid-cols-1 sm:grid-cols-2 gap-3 shrink-0">
-                <button onclick="copyAIPrompt()" data-i18n-title="titlePrompt" class="w-full bg-slate-100 dark:bg-slate-700 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-600 py-3 sm:py-2 px-3 rounded-lg text-sm sm:text-base font-bold transition shadow-sm flex justify-center items-center gap-2 col-span-1 sm:col-span-2 mb-1">
-                    <i class="fa-solid fa-comment-dots"></i> <span data-i18n="btnPrompt">指令</span>
-                </button>
                 <button onclick="performSmartReplace()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-800 dark:border-indigo-500 py-3 sm:py-2 px-3 rounded-lg text-sm sm:text-base font-bold transition shadow-sm flex justify-center items-center gap-2">
                     <i class="fa-solid fa-brain"></i> <span data-i18n="btnSmartReplace">🧠 智能分析替換</span>
                 </button>
@@ -261,11 +264,9 @@
         </div>
 
         <!-- ================= 第 3 欄：融合結果 ================= -->
+        <!-- 預設在手機端隱藏 (hidden)，桌面端一定顯示 (lg:flex) -->
         <div id="col3" class="hidden lg:flex flex-col flex-1 h-full bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-400 dark:border-slate-600 overflow-hidden border-t-2 border-t-green-600 transition-colors duration-300">
             <div class="bg-green-50 dark:bg-green-950 px-3 py-2 border-b border-slate-400 dark:border-slate-600 flex justify-between items-center shrink-0 flex-wrap gap-2">
-                <button onclick="switchTab(2)" data-i18n-title="titleBack" class="lg:hidden text-xs bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 border border-slate-400 dark:border-slate-500 px-2 py-1.5 rounded shadow-sm transition flex items-center gap-1" title="返回 AI 回覆">
-                    <i class="fa-solid fa-arrow-left"></i> <span data-i18n="btnBack">返回</span>
-                </button>
                 <h2 class="text-sm font-bold flex items-center gap-2 text-green-800 dark:text-green-300">
                     <span class="bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 rounded-full w-6 h-6 flex items-center justify-center text-xs border border-green-300 dark:border-green-600">3</span>
                     <span data-i18n="col3Title">最終代碼結果</span>
@@ -286,12 +287,13 @@
             
             <div class="editor-container bg-green-50/10 dark:bg-green-950/10 flex-1">
                 <div id="gutter3" class="gutter code-font text-xs bg-green-50/50 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500">1</div>
-                <div class="code-layer">
+                <div class="code-layer" onscroll="syncScroll(this, 'gutter3', 'backdrop3')">
                     <div id="backdrop3" class="highlight-backdrop code-font"></div>
-                    <textarea id="code3" wrap="off" class="code-input code-font text-slate-800 dark:text-slate-300 h-full w-full" data-i18n-placeholder="placeholder3" placeholder="替換後的結果會顯示喺度。新增嘅部分會有黃色螢光筆標示。" oninput="updateEditor('3')" onscroll="syncScroll(this, 'gutter3', 'backdrop3')" spellcheck="false" readonly></textarea>
+                    <textarea id="code3" class="code-input code-font no-scrollbar text-slate-800 dark:text-slate-300 h-full w-full" data-i18n-placeholder="placeholder3" placeholder="替換後的結果會顯示喺度。新增嘅部分會有黃色螢光筆標示。" oninput="updateEditor('3')" spellcheck="false" readonly></textarea>
                 </div>
             </div>
 
+            <!-- 結果匯出按鈕 -->
             <div class="bg-slate-100 dark:bg-slate-800 p-3 sm:p-4 pb-[calc(1rem+var(--safe-area-inset-bottom))] sm:pb-4 border-t border-slate-400 dark:border-slate-600 grid grid-cols-3 lg:flex gap-2 shrink-0">
                 <button onclick="copyResult()" class="w-full lg:flex-1 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-500 dark:border-slate-400 py-2 sm:py-2 px-1 sm:px-2 rounded-lg text-xs sm:text-sm font-medium transition shadow-sm">
                     <i class="fa-regular fa-copy"></i> <span data-i18n="btnCopy">複製</span>
@@ -302,7 +304,7 @@
                 <button onclick="saveFile()" class="w-full lg:flex-1 bg-purple-600 hover:bg-purple-700 text-white border border-purple-800 dark:border-purple-500 py-2 sm:py-2 px-1 sm:px-2 rounded-lg text-xs sm:text-sm font-medium transition shadow-sm">
                     <i class="fa-solid fa-floppy-disk"></i> <span data-i18n="btnSave">另存</span>
                 </button>
-                <button onclick="continueNextStep()" class="col-span-3 lg:col-span-1 w-full bg-amber-400 hover:bg-amber-500 text-amber-900 border border-amber-700 dark:border-amber-600 py-3 sm:py-2 px-4 rounded-lg text-sm sm:text-base font-bold transition shadow-sm flex justify-center items-center gap-2 mt-1 lg:mt-0">
+                <button onclick="prepareNextRound()" class="col-span-3 lg:col-span-1 w-full bg-amber-400 hover:bg-amber-500 text-amber-900 border border-amber-700 dark:border-amber-600 py-3 sm:py-2 px-4 rounded-lg text-sm sm:text-base font-bold transition shadow-sm flex justify-center items-center gap-2 mt-1 lg:mt-0">
                     <i class="fa-solid fa-arrow-right-arrow-left"></i> <span data-i18n="btnNextStep">繼續下一段</span>
                 </button>
             </div>
@@ -314,15 +316,21 @@
         const i18n = {
             zh: {
                 appTitle: "CodeBlend AI",
-                appVersion: "",
+                appVersion: "終極版",
                 langTitle: "Switch to English",
                 langLabel: "EN",
                 themeTitle: "切換日夜模式",
+                // 新增 Tab 翻譯
                 tab1: "原始",
                 tab2: "AI回覆",
                 tab3: "結果",
+                
                 col1Title: "你的原始檔案",
-                col2Title: "AI 回覆 (連中文字貼上)",
+                col2Title: "AI 回覆（貼上新一段）",
+                btnResetProgram: "清空重來",
+                titleResetProgram: "清空整個程式，重新開始",
+                btnClearAI: "清除舊回覆",
+                titleClearAI: "清除上一段 AI 回覆",
                 col3Title: "最終代碼結果",
                 btnUndo: "復原",
                 titleUndo: "復原上一次替換 (Ctrl+Z)",
@@ -335,8 +343,6 @@
                 btnSmartReplace: "🧠 智能分析替換",
                 btnVisualReplace: "🖱️ 視覺化點擊",
                 btnCheck: "檢查",
-                btnBack: "返回",
-                titleBack: "返回 AI 回覆",
                 btnFix: "修正一個",
                 titleCheck: "檢查漏寫括號或結尾",
                 titleFix: "一次只修正一個已確認的 HTML 標籤問題",
@@ -350,7 +356,7 @@
                 btnCopy: "複製",
                 btnShare: "分享",
                 btnSave: "另存",
-                btnNextStep: "繼續下一段",
+                btnNextStep: "下一次輸入",
                 placeholder1: "按右上角載入檔案，或貼上原本的 HTML 檔案代碼...",
                 placeholder2: "直接將 ChatGPT/Claude 的整段回答(包含解釋)貼喺度！\n系統識得自動過濾中文，抽出純代碼。",
                 placeholder3: "替換後的結果會顯示喺度。新增嘅部分會有黃色螢光筆標示。",
@@ -362,6 +368,7 @@
                 btnClose: "關閉",
                 syntaxModalTitle: "代碼健康檢查報告",
                 btnGotIt: "我知道了",
+                // JS 動態通知
                 msgUndo: "↩️ 已復原至上一個狀態",
                 msgFormatSuccess: "✨ 代碼已自動排版整齊！",
                 msgFormatFail: "排版失敗，請檢查代碼結構。",
@@ -382,11 +389,15 @@
                 msgCopy: "📋 乾淨代碼已複製！",
                 msgShareSuccess: "🚀 分享成功！",
                 msgAutoCopy: "已自動複製代碼！",
-                msgReadyNext: "🔄 已準備好接續處理下一段！",
+                msgReadyNext: "🔄 已清除上一段 AI 回覆，請貼上下一段內容。",
+                msgAISelected: "📝 已選取上一段 AI 回覆，貼上新內容會自動取代。",
+                msgAIInputCleared: "🧹 已清除上一段 AI 回覆。",
+                msgFreshStarted: "✨ 已開始新一輪，所有內容已清除。",
+                msgProgramReset: "🗑️ 整個程式已清空，可以重新開始。",
+                msgNeedResultNext: "請先完成一次智能替換，才可以開始下一次輸入。",
+                confirmResetProgram: "確定要清空整個程式，刪除三欄內容、復原記錄、搜尋及預覽狀態嗎？",
                 msgVisualReady: "🖱️ 視覺點擊準備就緒。",
-                btnPrompt: "指令",
-                titlePrompt: "複製 AI 輸出指引 (讓 AI 產出更準確的代碼)",
-                msgPromptCopy: "📋 AI 指引已複製！請貼給 ChatGPT/Claude。",
+                // 語法檢查器用
                 synPerfectTitle: "完美！代碼非常健康",
                 synPerfectDesc: "冇發現任何漏寫括號或未閂埋嘅標籤。",
                 synErrorTitle: "發現 {n} 個潛在語法錯誤",
@@ -400,16 +411,22 @@
                 synSourceOriginal: "檢查範圍：原始程式碼（第 1 欄）"
             },
             en: {
-                appTitle: "CodeBlend AI",
-                appVersion: "",
+                appTitle: "AI HTML Merger",
+                appVersion: "Ultimate",
                 langTitle: "切換至中文",
                 langLabel: "中",
                 themeTitle: "Toggle Dark Mode",
+                
                 tab1: "Original",
                 tab2: "AI Reply",
                 tab3: "Result",
+                
                 col1Title: "Your Original File",
-                col2Title: "AI Response (Paste All)",
+                col2Title: "AI Reply (Paste New Input)",
+                btnResetProgram: "Reset",
+                titleResetProgram: "Clear the whole program and start over",
+                btnClearAI: "Clear old reply",
+                titleClearAI: "Clear the previous AI reply",
                 col3Title: "Final Code Result",
                 btnUndo: "Undo",
                 titleUndo: "Undo last replacement (Ctrl+Z)",
@@ -422,8 +439,6 @@
                 btnSmartReplace: "🧠 Smart Replace",
                 btnVisualReplace: "🖱️ Visual Click",
                 btnCheck: "Check",
-                btnBack: "Back",
-                titleBack: "Back to AI response",
                 btnFix: "Fix one",
                 titleCheck: "Check missing brackets/tags",
                 titleFix: "Fix one confirmed HTML tag problem at a time",
@@ -437,7 +452,7 @@
                 btnCopy: "Copy",
                 btnShare: "Share",
                 btnSave: "Save As",
-                btnNextStep: "Next Step",
+                btnNextStep: "Next Input",
                 placeholder1: "Load file from top right, or paste your original HTML code here...",
                 placeholder2: "Paste the full ChatGPT/Claude response (including explanations) here!\nSystem automatically filters out text and extracts pure code.",
                 placeholder3: "Replaced result will be shown here. New parts are highlighted in yellow.",
@@ -449,6 +464,7 @@
                 btnClose: "Close",
                 syntaxModalTitle: "Code Health Report",
                 btnGotIt: "Got it",
+                // JS Dynamic messages
                 msgUndo: "↩️ Undone to previous state",
                 msgFormatSuccess: "✨ Code formatted successfully!",
                 msgFormatFail: "Format failed, check code structure.",
@@ -469,11 +485,15 @@
                 msgCopy: "📋 Clean code copied!",
                 msgShareSuccess: "🚀 Shared successfully!",
                 msgAutoCopy: "Code auto-copied to clipboard!",
-                msgReadyNext: "🔄 Ready to continue to the next section!",
+                msgReadyNext: "🔄 Previous AI reply cleared. Paste the next input.",
+                msgAISelected: "📝 Previous AI reply selected. Pasting new content will replace it.",
+                msgAIInputCleared: "🧹 Previous AI reply cleared.",
+                msgFreshStarted: "✨ New round started. All content was cleared.",
+                msgProgramReset: "🗑️ The whole program was cleared. You can start over.",
+                msgNeedResultNext: "Complete one smart replacement before starting the next input.",
+                confirmResetProgram: "Clear all three columns, undo history, search, and preview state?",
                 msgVisualReady: "🖱️ Visual click is ready.",
-                btnPrompt: "Prompt",
-                titlePrompt: "Copy AI Output Guidelines (make AI generate more accurate code)",
-                msgPromptCopy: "📋 AI guidelines copied! Paste them to ChatGPT/Claude.",
+                // Syntax checker
                 synPerfectTitle: "Perfect! Code is healthy",
                 synPerfectDesc: "No unclosed tags or missing brackets found.",
                 synErrorTitle: "Found {n} potential syntax errors",
@@ -502,7 +522,7 @@
         }
 
         function applyLanguage() {
-            document.title = t('appTitle');
+            document.title = t('appTitle') + " (" + t('appVersion') + ")";
             document.getElementById('currentLangLabel').innerText = t('langLabel');
             
             document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -537,9 +557,11 @@
 
         // ================= 手機端 Tab 切換邏輯 =================
         let currentTab = 1;
+        let aiInputReplaceArmed = false;
         function switchTab(tabId) {
             currentTab = tabId;
             
+            // 處理欄位顯示/隱藏 (針對手機端)
             const cols = ['col1', 'col2', 'col3'];
             cols.forEach((colId, index) => {
                 const i = index + 1;
@@ -553,6 +575,7 @@
                 }
             });
 
+            // 更新按鈕外觀設計
             const themes = {
                 1: { activeBg: 'bg-blue-100 dark:bg-blue-900/50', activeText: 'text-blue-700 dark:text-blue-300', activeBorder: 'border-blue-300 dark:border-blue-700', badgeBg: 'bg-blue-600' },
                 2: { activeBg: 'bg-indigo-100 dark:bg-indigo-900/50', activeText: 'text-indigo-700 dark:text-indigo-300', activeBorder: 'border-indigo-300 dark:border-indigo-700', badgeBg: 'bg-indigo-600' },
@@ -563,9 +586,11 @@
                 const btn = document.getElementById(`tabBtn${i}`);
                 const badge = document.getElementById(`tabBadge${i}`);
                 
+                // 重設為非選中狀態
                 btn.className = `flex-1 min-w-[80px] py-2 px-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium border border-slate-300 dark:border-slate-600 text-sm flex items-center justify-center gap-1.5 transition-colors shadow-sm`;
                 badge.className = `bg-slate-400 dark:bg-slate-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]`;
                 
+                // 套用選中狀態
                 if (i === tabId) {
                     const t = themes[i];
                     btn.className = `flex-1 min-w-[80px] py-2 px-2 rounded-lg ${t.activeBg} ${t.activeText} font-bold border ${t.activeBorder} text-sm flex items-center justify-center gap-1.5 transition-colors shadow-sm`;
@@ -575,6 +600,29 @@
         }
 
         // ================= 編輯器核心與捲動 =================
+        function handleAIInputChange() {
+            aiInputReplaceArmed = false;
+            updateEditor('2');
+        }
+
+        function prepareAIInputForReplacement() {
+            const input = document.getElementById('code2');
+            if (!aiInputReplaceArmed || !input.value) return;
+            input.select();
+            aiInputReplaceArmed = false;
+            showToast(t('msgAISelected'));
+        }
+
+        function clearAIInput() {
+            const input = document.getElementById('code2');
+            input.value = '';
+            aiInputReplaceArmed = false;
+            document.getElementById('backdrop2').innerHTML = '';
+            updateEditor('2');
+            input.focus();
+            showToast(t('msgAIInputCleared'));
+        }
+
         function updateEditor(id) {
             const textarea = document.getElementById(`code${id}`);
             const gutter = document.getElementById(`gutter${id}`);
@@ -587,34 +635,11 @@
             lineCountLabel.innerHTML = `📄 ${count} <span class="lineLabel">${t('lineUnit')}</span>`;
         }
 
-        // 同步 textarea 捲動到 gutter 與 backdrop (已修復：直接讀取 textarea 本身的 scrollTop / scrollLeft)
-        function syncScroll(textarea, gutterId, backdropId) {
-            document.getElementById(gutterId).scrollTop = textarea.scrollTop;
+        function syncScroll(scrollableLayer, gutterId, backdropId) {
+            document.getElementById(gutterId).scrollTop = scrollableLayer.scrollTop;
             const backdrop = document.getElementById(backdropId);
-            backdrop.scrollTop = textarea.scrollTop;
-            backdrop.scrollLeft = textarea.scrollLeft;
-        }
-
-        function copyAIPrompt() {
-            const prompt = `我正在使用一款具備「智能替換」功能的 HTML 編輯器。為了確保你能產出可被系統正確解析並自動替換的代碼，請遵循以下輸出規範：
-
-【輸出規則 / Output Rules】
-1. **提供完整代碼塊 (Markdown Blocks)**: 始終將代碼包裹在標準的 \`\`\`html ... \`\`\` 區塊中。
-2. **組件化完整輸出 (Full Component Output)**: 
-   - 如果你修改了某個 HTML 元素，請提供該元素的「完整外層標籤」（例如：提供整個 <div id="header">...</div> 而不僅僅是內部的文字）。
-   - 我的系統會自動尋找原始代碼中第一個匹配的標籤並進行「完整替換」。
-3. **CSS 與 JS 自動注入**:
-   - 如果你提供 <style> 標籤，系統會自動將其注入到 <head> 區塊。
-   - 如果你提供 <script> 標籤，系統會自動將其注入到 </body> 結束前。
-4. **避免代碼片段 (Avoid Fragments)**: 不要只提供屬性片段或斷開的代碼行。
-
-請確認收到此指引，並根據此格式提供更新後的代碼。`;
-            
-            navigator.clipboard.writeText(prompt).then(() => {
-                showToast(t('msgPromptCopy'));
-            }).catch(err => {
-                console.error('Failed to copy: ', err);
-            });
+            backdrop.scrollTop = scrollableLayer.scrollTop;
+            backdrop.scrollLeft = scrollableLayer.scrollLeft;
         }
 
         // ================= 排版與復原 (Undo) =================
@@ -692,6 +717,7 @@
                 backdrop3.innerHTML = escapeHTML(origHTML);
                 showToast(t('msgDirectCopy'));
                 
+                // [智能體驗] 如果在手機上，自動跳轉到結果頁籤
                 if (window.innerWidth < 1024) switchTab(3);
                 return; 
             }
@@ -752,6 +778,7 @@
             }
 
             code3.value = newHTML;
+            aiInputReplaceArmed = true;
             updateEditor('3');
 
             const part1 = newHTML.substring(0, startIndex);
@@ -760,16 +787,16 @@
             
             backdrop3.innerHTML = escapeHTML(part1) + '<mark id="scrollTarget">' + escapeHTML(part2) + '</mark>' + escapeHTML(part3);
 
+            // [智能體驗] 如果在手機上，替換成功後自動切換到結果頁籤！
             if (window.innerWidth < 1024) switchTab(3);
 
             setTimeout(() => {
                 const target = document.getElementById('scrollTarget');
                 if (target) {
-                    // 已修復：讓 textarea 自身捲動，對準高亮元素
-                    const container = document.getElementById('code3');
+                    const container = document.getElementById('code3').parentElement;
                     container.scrollTop = target.offsetTop - (container.clientHeight / 3);
                 }
-            }, 150);
+            }, 150); // 給予 Tab 切換動畫足夠時間
         }
 
         // ================= 搜尋功能 =================
@@ -843,9 +870,7 @@
             const textarea = document.getElementById('code1');
             const linesBefore = text.substring(0, matchIndex).split('\n').length;
             const lineHeight = parseFloat(window.getComputedStyle(textarea).lineHeight) || 21;
-            
-            // 已修復：讓 textarea 直接捲動
-            textarea.scrollTop = (linesBefore - 1) * lineHeight - (textarea.clientHeight / 2);
+            textarea.parentElement.scrollTop = (linesBefore - 1) * lineHeight - (textarea.parentElement.clientHeight / 2);
 
             const part1 = escapeHTMLForSearch(text.substring(0, matchIndex));
             const part2 = `<mark class="search-match">${escapeHTMLForSearch(text.substring(matchIndex, matchIndex + query.length))}</mark>`;
@@ -909,7 +934,7 @@
         }
 
         function detectEncodingWarning(code) {
-            const suspicious = code.match(/[ÃÂÐÑæçåä][\u0080-\u00bf–—]|/g) || [];
+            const suspicious = code.match(/[ÃÂÐÑæçåä�][\u0080-\u00bf–—]|�/g) || [];
             return suspicious.length >= 2 ? t('synEncodingWarning') : '';
         }
 
@@ -926,7 +951,7 @@
             const issues = [];
             const voidElements = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
             const stack = [];
-            const tokenRegex = /<!--[\s\S]*?-->|<!doctype\b[^>]*>|<(script|style)\b[^>]*>[\s\S]*?<\/\1>|<([a-z][\w:-]*)(?:\s+(?:"[^"]*"|'[^']*'|[^>'"]+)*?)?>|<\/([a-z][\w:-]*)>/gi;
+            const tokenRegex = /<!--[\s\S]*?-->|<!doctype\b[^>]*>|<\/?[a-z][^>]*>/gi;
             let match;
 
             while ((match = tokenRegex.exec(code)) !== null) {
@@ -934,12 +959,13 @@
                 const start = match.index;
                 const end = start + fullTag.length;
                 const line = code.slice(0, start).split('\n').length;
-
-                if (match[1]) continue;
                 if (fullTag.startsWith('<!--') || /^<!doctype\b/i.test(fullTag)) continue;
+                const closing = /^<\//.test(fullTag);
+                const parsed = fullTag.match(/^<\/?([a-z][\w:-]*)\b/i);
+                if (!parsed) continue;
+                const tag = parsed[1].toLowerCase();
 
-                if (match[3]) {
-                    const tag = match[3].toLowerCase();
+                if (closing) {
                     if (!stack.length) {
                         issues.push({ kind: 'extra-close', start, end, line, message: `${t('synExtraClose')} <b>&lt;/${tag}&gt;</b>` });
                         continue;
@@ -958,17 +984,15 @@
                     continue;
                 }
 
-                if (match[2]) {
-                    const tag = match[2].toLowerCase();
-                    if (!/\/\s*>$/.test(fullTag) && !voidElements.has(tag)) {
-                        stack.push({ tag, line });
-                    }
-                }
+                if (!/\/\s*>$/.test(fullTag) && !voidElements.has(tag)) stack.push({ tag, line });
             }
 
             for (let i = stack.length - 1; i >= 0; i--) {
                 const item = stack[i];
                 issues.push({ kind: 'missing-end', insertAt: code.length, tag: item.tag, line: item.line, message: `${t('synMissingClose')} <b>&lt;/${item.tag}&gt;</b>` });
+            }
+            if ((code.match(/</g) || []).length !== (code.match(/>/g) || []).length) {
+                issues.push({ kind: 'bracket', line: code.split('\n').length, message: t('synBracket') });
             }
             return issues;
         }
@@ -1088,17 +1112,50 @@
             } else { copyResult(); showToast(t('msgAutoCopy')); }
         }
 
-        function continueNextStep() {
+        function prepareNextRound() {
             const code = document.getElementById('code3').value;
-            if (!code) return;
-            saveStateToUndo(); 
-            document.getElementById('code1').value = code; updateEditor('1');
-            document.getElementById('code2').value = ''; document.getElementById('backdrop2').innerHTML = ''; updateEditor('2');
-            document.getElementById('code3').value = ''; document.getElementById('backdrop3').innerHTML = ''; updateEditor('3');
-            
+            if (!code) {
+                showToast(t('msgNeedResultNext'), true);
+                return;
+            }
+            saveStateToUndo();
+            document.getElementById('code1').value = code;
+            document.getElementById('backdrop1').innerHTML = escapeHTMLForSearch(code);
+            updateEditor('1');
+            document.getElementById('code2').value = '';
+            document.getElementById('backdrop2').innerHTML = '';
+            updateEditor('2');
+            document.getElementById('code3').value = '';
+            document.getElementById('backdrop3').innerHTML = '';
+            updateEditor('3');
+            aiInputReplaceArmed = false;
+
             if (window.innerWidth < 1024) switchTab(2);
-            
+            setTimeout(() => document.getElementById('code2').focus(), 100);
             showToast(t('msgReadyNext'));
+        }
+
+        function resetWholeProgram() {
+            const hasContent = ['code1', 'code2', 'code3'].some(id => document.getElementById(id).value.trim());
+            if (hasContent && !window.confirm(t('confirmResetProgram'))) return;
+            ['1', '2', '3'].forEach(id => {
+                document.getElementById(`code${id}`).value = '';
+                document.getElementById(`backdrop${id}`).innerHTML = '';
+                updateEditor(id);
+            });
+            undoStack = [];
+            aiInputReplaceArmed = false;
+            document.getElementById('undoBtn').classList.add('opacity-50', 'cursor-not-allowed');
+            document.getElementById('fileUpload').value = '';
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchMatchCount').textContent = '0/0';
+            closeSearch();
+            closePreview();
+            closeSyntaxModal();
+            setPreviewMode('desktop');
+            switchTab(1);
+            document.getElementById('code1').focus();
+            showToast(t('msgProgramReset'));
         }
 
         function visualReplaceMock() { showToast(t('msgVisualReady')); }
@@ -1112,27 +1169,18 @@
             setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'all 0.3s ease'; setTimeout(() => toast.remove(), 300); }, 3000);
         }
 
-        function updateViewportHeight() {
-            const height = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-            document.documentElement.style.setProperty('--app-height', `${Math.round(height)}px`);
-        }
-
-        updateViewportHeight();
-        window.addEventListener('resize', updateViewportHeight);
-        window.addEventListener('orientationchange', updateViewportHeight);
-        if (window.visualViewport) window.visualViewport.addEventListener('resize', updateViewportHeight);
-
         window.onload = () => { 
-            updateViewportHeight();
             applyLanguage();
             updateEditor('1'); 
             updateEditor('2'); 
             updateEditor('3'); 
 
+            // PWA: 註冊 Service Worker（用於安裝/快取）
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('./sw.js').catch(() => {});
             }
         };
     </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"f7a3268ea56841db8cf028773ac41ab7","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
 </html>
