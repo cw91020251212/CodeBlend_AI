@@ -13,6 +13,7 @@
     <link rel="icon" href="icons/icon-192x192.png" type="image/png">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
     <title>CodeBlend AI</title>
+    <link rel="stylesheet" href="visual-intent.css">
     
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -164,7 +165,7 @@
                 </div>
             </div>
             <div class="flex-1 bg-slate-300/30 dark:bg-black/40 overflow-y-auto flex flex-col items-center">
-                <iframe id="previewFrame" class="w-full h-full bg-white transition-all duration-300 border-none shrink-0 shadow-lg"></iframe>
+                <iframe id="previewFrame" title="網頁執行預覽" sandbox="allow-scripts" referrerpolicy="no-referrer" class="w-full h-full bg-white transition-all duration-300 border-none shrink-0 shadow-lg"></iframe>
             </div>
         </div>
     </div>
@@ -259,7 +260,7 @@
                     <i class="fa-solid fa-brain"></i> <span data-i18n="btnSmartReplace">🧠 智能分析替換</span>
                 </button>
                 <button onclick="visualReplaceMock()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white border border-emerald-800 dark:border-emerald-500 py-3 sm:py-2 px-3 rounded-lg text-sm sm:text-base font-bold transition shadow-sm flex justify-center items-center gap-2">
-                    <i class="fa-solid fa-hand-pointer"></i> <span data-i18n="btnVisualReplace">🖱️ 視覺化點擊</span>
+                    <i class="fa-solid fa-hand-pointer"></i> <span data-i18n="btnVisualReplace">視覺草稿 / AI 交接</span>
                 </button>
             </div>
         </div>
@@ -337,7 +338,7 @@
                 titleSearch: "搜尋 (Ctrl+F)",
                 searchPlaceholder: "尋找代碼 (Ctrl+F)...",
                 btnSmartReplace: "🧠 智能分析替換",
-                btnVisualReplace: "🖱️ 視覺化點擊",
+                btnVisualReplace: "視覺草稿 / AI 交接",
                 btnCheck: "檢查",
                 btnBack: "返回",
                 titleBack: "返回 AI 回覆",
@@ -395,8 +396,8 @@
                 btnPrompt: "指令",
                 titlePrompt: "複製 AI 輸出指引 (讓 AI 產出更準確的代碼)",
                 msgPromptCopy: "📋 AI 指引已複製！請貼給 ChatGPT/Claude。",
-                synPerfectTitle: "完美！代碼非常健康",
-                synPerfectDesc: "冇發現任何漏寫括號或未閂埋嘅標籤。",
+                synPerfectTitle: "HTML 標籤檢查完成",
+                synPerfectDesc: "未發現未配對或未關閉嘅 HTML 標籤；呢項檢查唔涵蓋 JavaScript、CSS 或執行結果。",
                 synErrorTitle: "發現 {n} 個潛在語法錯誤",
                 synErrorDesc: "AI 可能寫漏咗嘢，建議你檢查一下以下位置：",
                 synExtraClose: "❌ 多出咗未配對嘅結束標籤:",
@@ -428,7 +429,7 @@
                 titleSearch: "Search (Ctrl+F)",
                 searchPlaceholder: "Find code (Ctrl+F)...",
                 btnSmartReplace: "🧠 Smart Replace",
-                btnVisualReplace: "🖱️ Visual Click",
+                btnVisualReplace: "Visual Draft / AI Handoff",
                 btnCheck: "Check",
                 btnBack: "Back",
                 titleBack: "Back to AI response",
@@ -486,8 +487,8 @@
                 btnPrompt: "Prompt",
                 titlePrompt: "Copy AI Output Guidelines (make AI generate more accurate code)",
                 msgPromptCopy: "📋 AI guidelines copied! Paste them to ChatGPT/Claude.",
-                synPerfectTitle: "Perfect! Code is healthy",
-                synPerfectDesc: "No unclosed tags or missing brackets found.",
+                synPerfectTitle: "HTML tag check complete",
+                synPerfectDesc: "No unmatched or unclosed HTML tags were found. This check does not cover JavaScript, CSS, or runtime behavior.",
                 synErrorTitle: "Found {n} potential syntax errors",
                 synErrorDesc: "AI might have missed something, check these locations:",
                 synExtraClose: "❌ Extra unmatched closing tag:",
@@ -614,11 +615,11 @@
 1. **提供完整代碼塊 (Markdown Blocks)**: 始終將代碼包裹在標準的 \`\`\`html ... \`\`\` 區塊中。
 2. **組件化完整輸出 (Full Component Output)**: 
    - 如果你修改了某個 HTML 元素，請提供該元素的「完整外層標籤」（例如：提供整個 <div id="header">...</div> 而不僅僅是內部的文字）。
-   - 我的系統會自動尋找原始代碼中第一個匹配的標籤並進行「完整替換」。
+   - 保留目標元素的唯一 id，系統只在能安全定位完整元素時替換；沒有唯一位置就不會猜測。
 3. **CSS 與 JS 自動注入**:
    - 如果你提供 <style> 標籤，系統會自動將其注入到 <head> 區塊。
    - 如果你提供 <script> 標籤，系統會自動將其注入到 </body> 結束前。
-4. **避免代碼片段 (Avoid Fragments)**: 不要只提供屬性片段或斷開的代碼行。
+4. **多處修改請給完整 HTML**: 多個 HTML / CSS / JS 區塊不會自動猜測合併。請給一個包含全部修改的完整 HTML 代碼塊，不要省略腳本、樣式或原有功能。
 
 請確認收到此指引，並根據此格式提供更新後的代碼。`;
             
@@ -673,18 +674,207 @@
         }
 
         // ================= 智能分析與替換核心 =================
+        function findHTMLTagEnd(source, start) {
+            let quote = '';
+            for (let i = start + 1; i < source.length; i++) {
+                const ch = source[i];
+                if (quote) {
+                    if (ch === quote) quote = '';
+                    continue;
+                }
+                if (ch === '"' || ch === "'") quote = ch;
+                else if (ch === '>') return i + 1;
+            }
+            return -1;
+        }
+
+        function getHTMLAttribute(openTag, wantedName) {
+            const nameEnd = openTag.search(/[\s/>]/);
+            if (nameEnd === -1) return null;
+            let i = nameEnd;
+            const limit = openTag.length - 1;
+            const wanted = wantedName.toLowerCase();
+
+            while (i < limit) {
+                while (i < limit && /\s/.test(openTag[i])) i++;
+                if (i >= limit || openTag[i] === '/' || openTag[i] === '>') break;
+                const attrStart = i;
+                while (i < limit && !/[\s=/>]/.test(openTag[i])) i++;
+                const attrName = openTag.slice(attrStart, i).toLowerCase();
+                while (i < limit && /\s/.test(openTag[i])) i++;
+                let value = '';
+                if (openTag[i] === '=') {
+                    i++;
+                    while (i < limit && /\s/.test(openTag[i])) i++;
+                    const quote = openTag[i];
+                    if (quote === '"' || quote === "'") {
+                        i++;
+                        const valueStart = i;
+                        while (i < limit && openTag[i] !== quote) i++;
+                        if (i >= limit) return null;
+                        value = openTag.slice(valueStart, i);
+                        i++;
+                    } else {
+                        const valueStart = i;
+                        while (i < limit && !/[\s>]/.test(openTag[i])) i++;
+                        value = openTag.slice(valueStart, i);
+                    }
+                }
+                if (attrName === wanted) return value;
+            }
+            return null;
+        }
+
+        // This scanner supplies source offsets only. It intentionally never serializes the
+        // original DOM, and skips comments and script/style raw text before finding elements.
+        function scanHTMLSourceElements(source) {
+            const voidElements = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
+            const elements = [];
+            const stack = [];
+            let i = 0;
+
+            const fail = (reason) => ({ ok: false, reason });
+            while (i < source.length) {
+                if (source.startsWith('<!--', i)) {
+                    const end = source.indexOf('-->', i + 4);
+                    if (end === -1) return fail('unterminated-comment');
+                    i = end + 3;
+                    continue;
+                }
+                if (source[i] !== '<') {
+                    i++;
+                    continue;
+                }
+                if (source.startsWith('</', i)) {
+                    const closing = /^<\/\s*([A-Za-z][\w:-]*)\s*>/.exec(source.slice(i));
+                    if (!closing) {
+                        i++;
+                        continue;
+                    }
+                    if (!stack.length) return fail('unmatched-close');
+                    const tag = closing[1].toLowerCase();
+                    const open = stack.pop();
+                    if (open.tag !== tag) return fail('mismatched-close');
+                    open.closeStart = i;
+                    open.end = i + closing[0].length;
+                    i = open.end;
+                    continue;
+                }
+                if (source.startsWith('<!', i) || source.startsWith('<?', i)) {
+                    const end = findHTMLTagEnd(source, i);
+                    if (end === -1) return fail('unterminated-declaration');
+                    i = end;
+                    continue;
+                }
+
+                const opening = /^<([A-Za-z][\w:-]*)(?=[\s/>])/.exec(source.slice(i));
+                if (!opening) {
+                    i++;
+                    continue;
+                }
+                const tagEnd = findHTMLTagEnd(source, i);
+                if (tagEnd === -1) return fail('unterminated-open');
+                const tag = opening[1].toLowerCase();
+                const openTag = source.slice(i, tagEnd);
+                const parent = stack.length ? stack[stack.length - 1] : null;
+                const element = {
+                    tag,
+                    id: getHTMLAttribute(openTag, 'id'),
+                    start: i,
+                    openEnd: tagEnd,
+                    closeStart: tagEnd,
+                    end: tagEnd,
+                    parent
+                };
+                elements.push(element);
+                const selfClosing = /\/\s*>$/.test(openTag) || voidElements.has(tag);
+                if (selfClosing) {
+                    i = tagEnd;
+                    continue;
+                }
+
+                stack.push(element);
+                if (tag === 'script' || tag === 'style') {
+                    const rawClose = new RegExp(`<\\/\\s*${tag}\\s*>`, 'ig');
+                    rawClose.lastIndex = tagEnd;
+                    const closeMatch = rawClose.exec(source);
+                    if (!closeMatch) return fail(`unterminated-${tag}`);
+                    element.closeStart = closeMatch.index;
+                    element.end = closeMatch.index + closeMatch[0].length;
+                    stack.pop();
+                    i = element.end;
+                    continue;
+                }
+                i = tagEnd;
+            }
+            if (stack.length) return fail('unclosed-element');
+            return { ok: true, elements };
+        }
+
+        function hasOnlyWhitespaceAndComments(source) {
+            return source.replace(/<!--[\s\S]*?-->/g, '').trim() === '';
+        }
+
+        function getSingleAIElement(code, scan) {
+            const roots = scan.elements.filter(element => !element.parent);
+            if (roots.length !== 1) return null;
+            const root = roots[0];
+            if (!hasOnlyWhitespaceAndComments(code.slice(0, root.start)) || !hasOnlyWhitespaceAndComments(code.slice(root.end))) return null;
+            return root;
+        }
+
+        function getCompleteAIDocument(code, scan) {
+            if (!/^\s*(?:<!doctype\b[^>]*>\s*)?<html(?=[\s>])/i.test(code)) return { isDocument: false };
+            const roots = scan.elements.filter(element => !element.parent);
+            const root = roots.length === 1 ? roots[0] : null;
+            if (!root || root.tag !== 'html') return { isDocument: true, valid: false };
+            const before = code.slice(0, root.start).replace(/<!doctype\b[^>]*>/ig, '');
+            if (!hasOnlyWhitespaceAndComments(before) || !hasOnlyWhitespaceAndComments(code.slice(root.end))) return { isDocument: true, valid: false };
+            return { isDocument: true, valid: true };
+        }
+
         function extractHTMLFromAI(text) {
-            const blockRegex = /```(?:html)?\s*([\s\S]*?)```/i;
-            const match = text.match(blockRegex);
-            if (match) return match[1].trim();
-            
+            const blocks = [];
+            const fenceRegex = /```([A-Za-z0-9_-]*)[ \t]*\r?\n?([\s\S]*?)```/g;
+            let match;
+            while ((match = fenceRegex.exec(text)) !== null) {
+                if (match[2].trim()) blocks.push({ language: match[1].toLowerCase(), code: match[2].trim() });
+            }
+            if (blocks.length > 1) return { ok: false, reason: 'multiple-blocks' };
+            if (blocks.length === 1) return { ok: true, code: blocks[0].code, language: blocks[0].language };
+
             const firstTagIndex = text.indexOf('<');
             const lastTagIndex = text.lastIndexOf('>');
-            if (firstTagIndex !== -1 && lastTagIndex !== -1 && lastTagIndex > firstTagIndex) {
-                return text.substring(firstTagIndex, lastTagIndex + 1).trim();
+            if (firstTagIndex !== -1 && lastTagIndex > firstTagIndex) {
+                return { ok: true, code: text.substring(firstTagIndex, lastTagIndex + 1).trim(), language: '' };
             }
-            
-            return text.trim();
+            return { ok: false, reason: 'no-html' };
+        }
+
+        function smartReplaceError(reason) {
+            const messages = {
+                'multiple-blocks': {
+                    zh: 'AI 回覆包含多個程式碼區塊。為避免遺失 HTML、CSS 或 JS，未作合併；請提供一份完整 HTML。',
+                    en: 'The AI reply contains multiple code blocks. Nothing was merged to avoid dropping HTML, CSS, or JS; please provide one complete HTML document.'
+                },
+                'ambiguous': {
+                    zh: '找到多個可能的替換位置，未修改結果。請為元素提供唯一 id，或提供一份完整 HTML。',
+                    en: 'Multiple possible replacement locations were found. The result was not changed; give the element a unique id or provide a complete HTML document.'
+                },
+                'unsafe': {
+                    zh: '無法安全定位完整元素，未修改結果。請提供一份完整 HTML。',
+                    en: 'The complete element could not be safely located. The result was not changed; please provide a complete HTML document.'
+                },
+                'document': {
+                    zh: 'AI 回覆看似完整 HTML 文件但結構不完整，未修改結果。請提供一份完整 HTML。',
+                    en: 'The AI reply looks like a complete HTML document but its structure is incomplete. The result was not changed; please provide a complete HTML document.'
+                },
+                'injection': {
+                    zh: '找不到可安全注入的 <head> 或 <body>，未修改結果。請提供一份完整 HTML。',
+                    en: 'A safe <head> or <body> injection point was not found. The result was not changed; please provide a complete HTML document.'
+                }
+            };
+            showToast((messages[reason] || messages.unsafe)[currentLang] || messages[reason].en, true);
         }
 
         function performSmartReplace() {
@@ -697,91 +887,103 @@
 
             const escapeHTML = (str) => str.replace(/[&<>'"]/g, tag => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[tag]));
 
-            if (!aiText.trim()) { 
+            if (!aiText.trim()) {
                 saveStateToUndo();
                 code3.value = origHTML;
                 updateEditor('3');
                 backdrop3.innerHTML = escapeHTML(origHTML);
                 showToast(t('msgDirectCopy'));
-                
                 if (window.innerWidth < 1024) switchTab(3);
-                return; 
+                return;
             }
 
-            saveStateToUndo();
+            const extracted = extractHTMLFromAI(aiText);
+            if (!extracted.ok) {
+                smartReplaceError(extracted.reason);
+                return;
+            }
+            const pureCode = extracted.code;
+            const aiScan = scanHTMLSourceElements(pureCode);
+            if (!aiScan.ok) {
+                smartReplaceError('unsafe');
+                return;
+            }
+            const documentResult = getCompleteAIDocument(pureCode, aiScan);
+            if (documentResult.isDocument) {
+                if (!documentResult.valid) {
+                    smartReplaceError('document');
+                    return;
+                }
+                saveStateToUndo();
+                code3.value = pureCode;
+                updateEditor('3');
+                backdrop3.innerHTML = `<mark id="scrollTarget">${escapeHTML(pureCode)}</mark>`;
+                showToast(t('msgReplaceSuccess'));
+                if (window.innerWidth < 1024) switchTab(3);
+                return;
+            }
 
-            const pureCode = extractHTMLFromAI(aiText);
-            let newHTML = origHTML;
+            const aiElement = getSingleAIElement(pureCode, aiScan);
+            if (!aiElement) {
+                smartReplaceError('unsafe');
+                return;
+            }
+            const sourceScan = scanHTMLSourceElements(origHTML);
+            if (!sourceScan.ok) {
+                smartReplaceError('unsafe');
+                return;
+            }
+
             let startIndex = -1;
-            let replaced = false;
-
-            if (pureCode.toLowerCase().startsWith('<style')) {
-                const headEnd = newHTML.indexOf('</head>');
-                if (headEnd !== -1) {
-                    startIndex = headEnd;
-                    newHTML = newHTML.substring(0, headEnd) + '\n' + pureCode + '\n' + newHTML.substring(headEnd);
-                    replaced = true;
-                    showToast(t('msgInjectCSS'));
+            let replacement = pureCode;
+            let successMessage = t('msgReplaceSuccess');
+            let targetElement = null;
+            if (aiElement.id !== null) {
+                const matches = sourceScan.elements.filter(element => element.id === aiElement.id);
+                if (matches.length !== 1) {
+                    smartReplaceError(matches.length > 1 ? 'ambiguous' : 'unsafe');
+                    return;
                 }
-            } 
-            else if (pureCode.toLowerCase().startsWith('<script')) {
-                const bodyEnd = newHTML.lastIndexOf('</body>');
-                if (bodyEnd !== -1) {
-                    startIndex = bodyEnd;
-                    newHTML = newHTML.substring(0, bodyEnd) + '\n' + pureCode + '\n' + newHTML.substring(bodyEnd);
-                    replaced = true;
-                    showToast(t('msgInjectJS'));
+                targetElement = matches[0];
+            } else if (aiElement.tag === 'style' || aiElement.tag === 'script') {
+                const containerTag = aiElement.tag === 'style' ? 'head' : 'body';
+                const containers = sourceScan.elements.filter(element => element.tag === containerTag);
+                if (containers.length !== 1 || containers[0].closeStart === containers[0].end) {
+                    smartReplaceError('injection');
+                    return;
                 }
-            }
-            
-            if (!replaced) {
-                const firstTagMatch = pureCode.match(/^<([a-z0-9]+)(\s[^>]*)?>/i);
-                if (firstTagMatch) {
-                    const tagName = firstTagMatch[1];
-                    const searchRegex = new RegExp(`<${tagName}[^>]*>[\\s\\S]*?<\\/${tagName}>`, 'i');
-                    const matchInOrig = origHTML.match(searchRegex);
-                    
-                    if (matchInOrig) {
-                        startIndex = matchInOrig.index;
-                        const replaceLength = matchInOrig[0].length;
-                        newHTML = origHTML.substring(0, startIndex) + pureCode + origHTML.substring(startIndex + replaceLength);
-                        replaced = true;
-                        showToast(t('msgReplaceSuccess'));
-                    }
+                startIndex = containers[0].closeStart;
+                replacement = `\n${pureCode}\n`;
+                successMessage = aiElement.tag === 'style' ? t('msgInjectCSS') : t('msgInjectJS');
+            } else {
+                const matches = sourceScan.elements.filter(element => element.tag === aiElement.tag);
+                if (matches.length !== 1) {
+                    smartReplaceError(matches.length > 1 ? 'ambiguous' : 'unsafe');
+                    return;
                 }
+                targetElement = matches[0];
             }
 
-            if (!replaced) {
-                const bodyEndIndex = origHTML.lastIndexOf('</body>');
-                if (bodyEndIndex !== -1) {
-                    startIndex = bodyEndIndex;
-                    newHTML = origHTML.substring(0, bodyEndIndex) + '\n' + pureCode + '\n' + origHTML.substring(bodyEndIndex);
-                } else {
-                    startIndex = origHTML.length;
-                    newHTML = origHTML + '\n' + pureCode;
-                }
-                showToast(t('msgAppendEnd'));
+            if (targetElement) {
+                startIndex = targetElement.start;
+                const endIndex = targetElement.end;
+                const newHTML = origHTML.slice(0, startIndex) + replacement + origHTML.slice(endIndex);
+                saveStateToUndo();
+                code3.value = newHTML;
+                updateEditor('3');
+                backdrop3.innerHTML = escapeHTML(newHTML.slice(0, startIndex)) + '<mark id="scrollTarget">' + escapeHTML(replacement) + '</mark>' + escapeHTML(newHTML.slice(startIndex + replacement.length));
+                showToast(successMessage);
+                if (window.innerWidth < 1024) switchTab(3);
+                return;
             }
 
+            const newHTML = origHTML.slice(0, startIndex) + replacement + origHTML.slice(startIndex);
+            saveStateToUndo();
             code3.value = newHTML;
             updateEditor('3');
-
-            const part1 = newHTML.substring(0, startIndex);
-            const part2 = pureCode;
-            const part3 = newHTML.substring(startIndex + pureCode.length);
-            
-            backdrop3.innerHTML = escapeHTML(part1) + '<mark id="scrollTarget">' + escapeHTML(part2) + '</mark>' + escapeHTML(part3);
-
+            backdrop3.innerHTML = escapeHTML(newHTML.slice(0, startIndex)) + '<mark id="scrollTarget">' + escapeHTML(replacement) + '</mark>' + escapeHTML(newHTML.slice(startIndex + replacement.length));
+            showToast(successMessage);
             if (window.innerWidth < 1024) switchTab(3);
-
-            setTimeout(() => {
-                const target = document.getElementById('scrollTarget');
-                if (target) {
-                    // 已修復：讓 textarea 自身捲動，對準高亮元素
-                    const container = document.getElementById('code3');
-                    container.scrollTop = target.offsetTop - (container.clientHeight / 3);
-                }
-            }, 150);
         }
 
         // ================= 搜尋功能 =================
@@ -789,6 +991,7 @@
         let currentSearchIndex = -1;
 
         document.addEventListener('keydown', function(e) {
+            if (document.getElementById('visualIntentModal') && !document.getElementById('visualIntentModal').hidden) return;
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undoLast(); }
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') { e.preventDefault(); openSearch(); }
         });
@@ -880,12 +1083,12 @@
             modal.classList.remove('hidden');
             setPreviewMode('desktop');
             
-            const doc = iframe.contentWindow.document;
-            doc.open(); doc.write(code); doc.close();
+            iframe.srcdoc = code;
         }
 
         function closePreview() {
             document.getElementById('previewModal').classList.add('hidden');
+            document.getElementById('previewFrame').removeAttribute('srcdoc');
             document.getElementById('previewFrame').src = 'about:blank';
         }
 
@@ -921,7 +1124,7 @@
         }
 
         function detectEncodingWarning(code) {
-            const suspicious = code.match(/[ÃÂÐÑæçåä][\u0080-\u00bf–—]|/g) || [];
+            const suspicious = code.match(/[ÃÂÐÑæçåä][\u0080-\u00bf–—]/g) || [];
             return suspicious.length >= 2 ? t('synEncodingWarning') : '';
         }
 
@@ -1056,8 +1259,12 @@
             reader.onload = function(e) {
                 saveStateToUndo();
                 const decoded = decodeUploadedFile(e.target.result);
+                window.codeBlendSourceFilename = file.name;
                 document.getElementById('code1').value = decoded.text;
                 updateEditor('1');
+                document.getElementById('code3').value = '';
+                document.getElementById('backdrop3').innerHTML = '';
+                updateEditor('3');
                 document.getElementById('backdrop1').innerHTML = escapeHTMLForSearch(decoded.text);
                 showToast(`${t('msgFileLoaded')}: ${file.name} (${decoded.encoding})${decoded.warning ? ' — ' + t('msgFixEncoding') : ''}`, Boolean(decoded.warning));
             };
@@ -1142,10 +1349,12 @@
             currentTab = 1;
             if (window.innerWidth < 1024) switchTab(1);
             document.getElementById('code1').focus();
+            window.codeBlendSourceFilename = 'index.html';
+            window.CodeBlendIntent?.reset();
             showToast(t('msgResetProgram'));
         }
 
-        function visualReplaceMock() { showToast(t('msgVisualReady')); }
+        function visualReplaceMock() { window.CodeBlendIntent.open(); }
 
         function showToast(message, isError = false) {
             const container = document.getElementById('toastContainer');
@@ -1178,6 +1387,7 @@
             }
         };
     </script>
+    <script src="visual-intent.js"></script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"f7a3268ea56841db8cf028773ac41ab7","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
 </html>
